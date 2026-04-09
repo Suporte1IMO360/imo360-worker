@@ -8,7 +8,7 @@ import {
 
 const router = new Hono<AppEnv>()
 
-router.get('/imoveis/:hash/tipoimovel', async (c) => {
+router.get('/naturezas/:hash', async (c) => {
   const hash = c.req.param('hash')
   const lang = c.req.query('lang')
   const type = c.req.query('type')
@@ -18,7 +18,7 @@ router.get('/imoveis/:hash/tipoimovel', async (c) => {
   return c.json(payload)
 })
 
-router.get('/imoveis/:hash/tiponegocio', async (c) => {
+router.get('/negocios/:hash', async (c) => {
   const hash = c.req.param('hash')
   const lang = c.req.query('lang')
   const type = c.req.query('type')

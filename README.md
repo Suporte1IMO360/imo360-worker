@@ -135,8 +135,8 @@ git push -u origin main
 - `GET /api/website/:hash`
 - `GET /api/website/:hash/homepage/blocks?lang=pt|en|es|fr|de`
 - `GET /api/contacts/:hash`
-- `GET /api/imoveis/:hash/tipoimovel?lang=pt|en|es|fr|de[&type=1]`
-- `GET /api/imoveis/:hash/tiponegocio?lang=pt|en|es|fr|de[&type=1]`
+- `GET /api/naturezas/:hash?lang=pt|en|es|fr|de[&type=1]`
+- `GET /api/negocios/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/imoveis/:hash`
 - `GET /api/preview/:hash`
 
