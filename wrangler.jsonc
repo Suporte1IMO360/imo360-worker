@@ -1,0 +1,28 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "imo360-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-04-09",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "vars": {
+    "APP_ENV": "local",
+    "URL_IMO360": "https://app.imo360crm.pt",
+    "HASHIDS_MIN_LENGTH": "6",
+    "CACHE_TTL_WEBSITE": "2592000",
+    "CACHE_TTL_IMOVEIS": "300",
+    "CACHE_TTL_PREVIEW": "300"
+  },
+
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "42bd76cce69844069b2b045dd9044ed8",
+      "localConnectionString": "mysql://imo360crm_uBjHvszuHhEfQnKmh:qD7rBoQ1gts20K5hWDuljPsEYWe0u0@141.95.54.69:3306/imo360crm_FCcEAyZyQvPypvntZAehExnSL"
+    }
+  ],
+
+  "observability": {
+    "enabled": true
+  }
+}
