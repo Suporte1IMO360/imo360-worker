@@ -8,6 +8,7 @@ import {
   findDistritosRows,
   findFreguesiasRowsOnlineOnly,
   findFreguesiasRows,
+  findEstadoRows,
   findImovelDealTypeRows,
   findImovelNatureRows
 } from '../repositories/imoveis.repository'
@@ -233,6 +234,21 @@ export async function getDisponibilidadesByHash(
   const scopeIds = resolveScopeIds(decodedId)
 
   const rows = await findDisponibilidadeRows(env, scopeIds, byColaborador)
+
+  return toPluckMap(rows, (row) => row[lang])
+}
+
+export async function getEstadosByHash(
+  env: Bindings,
+  hash: string,
+  options: { lang?: string; type?: string }
+): Promise<Record<string, string | null>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const lang = normalizeLang(options.lang)
+  const byColaborador = isFilled(options.type)
+  const scopeIds = resolveScopeIds(decodedId)
+
+  const rows = await findEstadoRows(env, scopeIds, byColaborador)
 
   return toPluckMap(rows, (row) => row[lang])
 }

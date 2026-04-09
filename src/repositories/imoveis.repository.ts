@@ -34,6 +34,16 @@ type DisponibilidadeRow = RowDataPacket & {
   de: string | null
 }
 
+type EstadoRow = RowDataPacket & {
+  id: number
+  name: string | null
+  pt: string | null
+  en: string | null
+  es: string | null
+  fr: string | null
+  de: string | null
+}
+
 type PlaceNameRow = RowDataPacket & {
   id: number
   name: string | null
@@ -194,6 +204,36 @@ export async function findDisponibilidadeRows(
   `
 
   return queryRows<DisponibilidadeRow>(env, sql, userIds)
+}
+
+export async function findEstadoRows(
+  env: Bindings,
+  userIds: number[],
+  byColaborador: boolean
+): Promise<EstadoRow[]> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const scopeColumn = byColaborador ? 'colaborador_id' : 'agencia_id'
+  const userPlaceholders = placeholders(userIds)
+
+  const sql = `
+    SELECT e.id, e.name, e.pt, e.en, e.es, e.fr, e.de
+    FROM imovests e
+    WHERE e.deleted_at IS NULL
+      AND e.id IN (
+        SELECT DISTINCT i.imovest_id
+        FROM imovs i
+        WHERE i.${scopeColumn} IN (${userPlaceholders})
+          AND i.online = 1
+          AND i.deleted_at IS NULL
+          AND i.imovest_id IS NOT NULL
+      )
+    ORDER BY e.name ASC
+  `
+
+  return queryRows<EstadoRow>(env, sql, userIds)
 }
 
 export async function findDistritosRows(

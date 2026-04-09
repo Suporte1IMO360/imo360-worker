@@ -3,6 +3,7 @@ import type { AppEnv } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
   getDisponibilidadesByHash,
+  getEstadosByHash,
   getOtherPlacesByHash,
   getPlacesByHash,
   getTipoImovelByHash,
@@ -57,6 +58,16 @@ router.get('/disponibilidades/:hash', async (c) => {
   const type = c.req.query('type')
 
   const payload = await getDisponibilidadesByHash(c.env, hash, { lang, type })
+
+  return c.json(payload)
+})
+
+router.get('/estados/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const lang = c.req.query('lang')
+  const type = c.req.query('type')
+
+  const payload = await getEstadosByHash(c.env, hash, { lang, type })
 
   return c.json(payload)
 })

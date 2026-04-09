@@ -140,6 +140,7 @@ git push -u origin main
 - `GET /api/places/:hash?qry=<texto>[&type=1]`
 - `GET /api/otherplaces/:hash?qry=<texto>[&type=1]`
 - `GET /api/disponibilidades/:hash?lang=pt|en|es|fr|de[&type=1]`
+- `GET /api/estados/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/imoveis/:hash`
 - `GET /api/preview/:hash`
 
