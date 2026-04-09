@@ -100,6 +100,27 @@ export type WebsiteAggregate = {
   colors: ColorsRow
 }
 
+export type HomepageBlockRow = RowDataPacket & {
+  selection: number
+  img: string | null
+  admin_image_imagem: string | null
+  text_pt: string | null
+  text_en: string | null
+  text_es: string | null
+  text_fr: string | null
+  text_de: string | null
+  bt_pt: string | null
+  bt_en: string | null
+  bt_es: string | null
+  bt_fr: string | null
+  bt_de: string | null
+  link_pt: string | null
+  link_en: string | null
+  link_es: string | null
+  link_fr: string | null
+  link_de: string | null
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -121,6 +142,32 @@ async function querySingleRow<T extends RowDataPacket>(
 
     const [rows] = await run.call(client, sql, params)
     return rows[0] ?? null
+  } finally {
+    await connection.end()
+  }
+}
+
+async function queryRows<T extends RowDataPacket>(
+  env: Bindings,
+  sql: string,
+  params: QueryParams
+): Promise<T[]> {
+  const connection = await getConnection(env)
+
+  try {
+    const client = connection as unknown as {
+      execute?: (statement: string, values: QueryParams) => Promise<[T[]]>
+      query?: (statement: string, values: QueryParams) => Promise<[T[]]>
+    }
+
+    const run = client.query ?? client.execute
+
+    if (!run) {
+      throw new Error('Unsupported MySQL connection client')
+    }
+
+    const [rows] = await run.call(client, sql, params)
+    return rows
   } finally {
     await connection.end()
   }
@@ -339,4 +386,41 @@ export async function findWebsiteAggregateByAgencyId(
     pages,
     colors
   }
+}
+
+export async function findHomepageBlocksByAgencyId(
+  env: Bindings,
+  agencyId: number
+): Promise<HomepageBlockRow[]> {
+  return queryRows<HomepageBlockRow>(
+    env,
+    `
+      SELECT
+        wh.selection,
+        wh.img,
+        wh.text_pt,
+        wh.text_en,
+        wh.text_es,
+        wh.text_fr,
+        wh.text_de,
+        wh.bt_pt,
+        wh.bt_en,
+        wh.bt_es,
+        wh.bt_fr,
+        wh.bt_de,
+        wh.link_pt,
+        wh.link_en,
+        wh.link_es,
+        wh.link_fr,
+        wh.link_de,
+        ai.imagem AS admin_image_imagem
+      FROM website_homepage wh
+      JOIN websites w ON w.id = wh.website_id
+      LEFT JOIN adminimagens ai ON ai.id = wh.img
+      WHERE wh.online = 1
+        AND w.agencia_id = ?
+      ORDER BY wh.bloco ASC
+    `,
+    [agencyId]
+  )
 }

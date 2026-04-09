@@ -157,6 +157,15 @@ function makeFileUrl(env: Bindings, value: unknown, agencyId: number, hash: stri
   return resolveAssetUrl(env, value, agencyId, hash)
 }
 
+export function resolveWebsiteFileUrl(
+  env: Bindings,
+  value: unknown,
+  agencyId: number,
+  hash: string
+): string | null {
+  return makeFileUrl(env, value, agencyId, hash)
+}
+
 function adminImageUrl(env: Bindings, filename: unknown): string | null {
   const raw = asNullableString(filename)
 
@@ -180,6 +189,10 @@ function adminImageUrl(env: Bindings, filename: unknown): string | null {
   }
 
   return `${normalizeBaseUrl(env.URL_IMO360)}/adminimagens/${raw}`
+}
+
+export function resolveWebsiteAdminImageUrl(env: Bindings, filename: unknown): string | null {
+  return adminImageUrl(env, filename)
 }
 
 function formatHour(value: unknown): string {

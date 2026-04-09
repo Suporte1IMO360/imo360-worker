@@ -133,6 +133,7 @@ git push -u origin main
 
 - `GET /health`
 - `GET /api/website/:hash`
+- `GET /api/website/:hash/homepage/blocks?lang=pt|en|es|fr|de`
 - `GET /api/contacts/:hash`
 - `GET /api/imoveis/:hash`
 - `GET /api/preview/:hash`
