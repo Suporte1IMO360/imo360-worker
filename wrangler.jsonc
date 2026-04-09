@@ -9,6 +9,9 @@
     "APP_ENV": "local",
     "URL_IMO360": "https://app.imo360crm.pt",
     "HASHIDS_MIN_LENGTH": "6",
+    "HASHIDS_ALPHABET": "abcdefghijklmnopqrstuvwxyz1234567890",
+    "HASHIDS_ALTERNATIVE_MIN_LENGTH": "25",
+    "HASHIDS_ALTERNATIVE_ALPHABET": "abcdefghijklmnopqrstuvwxyz1234567890",
     "CACHE_TTL_WEBSITE": "2592000",
     "CACHE_TTL_IMOVEIS": "300",
     "CACHE_TTL_PREVIEW": "300"

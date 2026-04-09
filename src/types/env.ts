@@ -1,0 +1,19 @@
+export type Bindings = {
+  HYPERDRIVE: Hyperdrive
+  APP_ENV: string
+  URL_IMO360: string
+  HASHIDS_SALT: string
+  HASHIDS_MIN_LENGTH: string
+  HASHIDS_ALPHABET: string
+  HASHIDS_ALTERNATIVE_SALT?: string
+  HASHIDS_ALTERNATIVE_MIN_LENGTH?: string
+  HASHIDS_ALTERNATIVE_ALPHABET?: string
+  CACHE_TTL_WEBSITE: string
+  CACHE_TTL_IMOVEIS: string
+  CACHE_TTL_PREVIEW: string
+  API_AUTH_TOKEN?: string
+}
+
+export type AppEnv = {
+  Bindings: Bindings
+}

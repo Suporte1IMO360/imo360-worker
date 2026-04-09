@@ -27,7 +27,18 @@ npm install
 cp .dev.vars.example .dev.vars
 ```
 
-Editar `.dev.vars` e colocar o teu `HASHIDS_SALT` real.
+Editar `.dev.vars` e colocar as configs reais do Hashids do Lumen:
+
+```env
+HASHIDS_SALT=F28F86043514AEB26943F1A67F21B94251201F322199855F1DF1B982E3CF7C92
+HASHIDS_MIN_LENGTH=6
+HASHIDS_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
+
+# Opcional: segunda conexao hashids (ex.: 'alternative' no Laravel)
+HASHIDS_ALTERNATIVE_SALT=F28F86043514AEB26943F1A67F21B94251201F322199855F1DF1B982E3CF7C92
+HASHIDS_ALTERNATIVE_MIN_LENGTH=25
+HASHIDS_ALTERNATIVE_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
+```
 
 ## 3. Executar localmente
 
