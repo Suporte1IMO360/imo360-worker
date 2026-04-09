@@ -8,6 +8,8 @@ import {
   getDisponibilidadesByHash,
   getDistritosByHash,
   getEstadosByHash,
+  getFreguesiaConcelhoById,
+  getFreguesiasByHash,
   getOtherPlacesByHash,
   getPlacesByHash,
   getTipoImovelByHash,
@@ -120,6 +122,24 @@ router.get('/concelho/:concelhoid', async (c) => {
   const concelhoid = c.req.param('concelhoid')
 
   const payload = await getConcelhoDistritoById(c.env, concelhoid)
+
+  return c.json(payload)
+})
+
+router.get('/freguesias/:id{[0-9]+}', async (c) => {
+  const id = c.req.param('id')
+
+  const payload = await getFreguesiaConcelhoById(c.env, id)
+
+  return c.json(payload)
+})
+
+router.get('/freguesias/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const type = c.req.query('type')
+  const concelho_id = c.req.query('concelho_id')
+
+  const payload = await getFreguesiasByHash(c.env, hash, { type, concelho_id })
 
   return c.json(payload)
 })

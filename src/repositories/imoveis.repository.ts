@@ -73,6 +73,16 @@ type ConcelhoDistritoRow = RowDataPacket & {
   distrito_id: number | null
 }
 
+type FreguesiaRow = RowDataPacket & {
+  id: number
+  name: string | null
+  concelho_id: number | null
+}
+
+type FreguesiaConcelhoRow = RowDataPacket & {
+  concelho_id: number | null
+}
+
 async function queryRows<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -401,6 +411,55 @@ export async function findConcelhoDistritoById(
   `
 
   const rows = await queryRows<ConcelhoDistritoRow>(env, sql, [concelhoId])
+
+  return rows[0] ?? null
+}
+
+export async function findFreguesiaRowsByScope(
+  env: Bindings,
+  userIds: number[],
+  byColaborador: boolean,
+  concelhoIdFilter?: number
+): Promise<FreguesiaRow[]> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const scopeColumn = byColaborador ? 'colaborador_id' : 'agencia_id'
+  const userPlaceholders = placeholders(userIds)
+  const concelhoFilterSql = concelhoIdFilter ? 'AND f.concelho_id = ?' : ''
+
+  const sql = `
+    SELECT f.id, f.name, f.concelho_id
+    FROM freguesias f
+    WHERE f.id IN (
+      SELECT DISTINCT i.freguesia_id
+      FROM imovs i
+      WHERE i.${scopeColumn} IN (${userPlaceholders})
+        AND i.online = 1
+        AND i.freguesia_id IS NOT NULL
+    )
+    ${concelhoFilterSql}
+    ORDER BY f.name ASC
+  `
+
+  const params = concelhoIdFilter ? [...userIds, concelhoIdFilter] : userIds
+
+  return queryRows<FreguesiaRow>(env, sql, params)
+}
+
+export async function findFreguesiaConcelhoById(
+  env: Bindings,
+  freguesiaId: number
+): Promise<FreguesiaConcelhoRow | null> {
+  const sql = `
+    SELECT f.concelho_id
+    FROM freguesias f
+    WHERE f.id = ?
+    LIMIT 1
+  `
+
+  const rows = await queryRows<FreguesiaConcelhoRow>(env, sql, [freguesiaId])
 
   return rows[0] ?? null
 }

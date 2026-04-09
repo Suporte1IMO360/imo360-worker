@@ -10,6 +10,8 @@ import {
   findDistritoRowsByScope,
   findDistritosRowsOnlineOnly,
   findDistritosRows,
+  findFreguesiaConcelhoById,
+  findFreguesiaRowsByScope,
   findFreguesiasRowsOnlineOnly,
   findFreguesiasRows,
   findEstadoRows,
@@ -347,4 +349,41 @@ export async function getConcelhoDistritoById(
   }
 
   return findConcelhoDistritoById(env, concelhoId)
+}
+
+export async function getFreguesiasByHash(
+  env: Bindings,
+  hash: string,
+  options: { type?: string; concelho_id?: string }
+): Promise<Array<{ id: number; name: string | null; concelho_id: number | null }>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const byColaborador = isFilled(options.type)
+  const scopeIds = resolveScopeIds(decodedId)
+  const concelhoIdFilter = parseOptionalPositiveInt(options.concelho_id)
+
+  const rows = await findFreguesiaRowsByScope(
+    env,
+    scopeIds,
+    byColaborador,
+    concelhoIdFilter
+  )
+
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    concelho_id: row.concelho_id
+  }))
+}
+
+export async function getFreguesiaConcelhoById(
+  env: Bindings,
+  id: string
+): Promise<{ concelho_id: number | null } | null> {
+  const freguesiaId = parseOptionalPositiveInt(id)
+
+  if (!freguesiaId) {
+    return null
+  }
+
+  return findFreguesiaConcelhoById(env, freguesiaId)
 }

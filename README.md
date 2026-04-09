@@ -146,6 +146,8 @@ git push -u origin main
 - `GET /api/distritos/:hash[?type=1]`
 - `GET /api/concelhos/:hash[?type=1][&distrito_id=<distrito_id>]`
 - `GET /api/concelho/:concelhoid`
+- `GET /api/freguesias/:hash[?type=1][&concelho_id=<concelho_id>]`
+- `GET /api/freguesias/:id` (apenas id numerico)
 - `GET /api/imoveis/:hash`
 - `GET /api/preview/:hash`
 
