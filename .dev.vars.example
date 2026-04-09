@@ -1,0 +1,16 @@
+# Hashids (main)
+HASHIDS_SALT=CHANGE_ME
+HASHIDS_MIN_LENGTH=6
+HASHIDS_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
+
+# Hashids (alternative - optional)
+HASHIDS_ALTERNATIVE_SALT=CHANGE_ME
+HASHIDS_ALTERNATIVE_MIN_LENGTH=25
+HASHIDS_ALTERNATIVE_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
+
+# Cloudflare Images (optional)
+# Set true to generate image URLs in format:
+# https://imagedelivery.net/<ACCOUNT_HASH>/<IMAGE_ID>/<VARIANT>
+USE_CLOUDFLARE_IMAGES=true
+CF_IMAGES_BASE_URL=https://images.crm360.pt/imo360
+CF_IMAGES_VARIANT=public

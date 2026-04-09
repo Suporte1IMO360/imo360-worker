@@ -2,6 +2,9 @@ export type Bindings = {
   HYPERDRIVE: Hyperdrive
   APP_ENV: string
   URL_IMO360: string
+  USE_CLOUDFLARE_IMAGES?: string
+  CF_IMAGES_BASE_URL?: string
+  CF_IMAGES_VARIANT?: string
   HASHIDS_SALT: string
   HASHIDS_MIN_LENGTH: string
   HASHIDS_ALPHABET: string

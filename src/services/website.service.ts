@@ -46,7 +46,47 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
 }
 
-function makeFileUrl(baseUrl: string, value: unknown): string | null {
+function asBooleanString(value: string | undefined): boolean {
+  if (!value) {
+    return false
+  }
+
+  const normalized = value.trim().toLowerCase()
+  return normalized === '1' || normalized === 'true' || normalized === 'yes' || normalized === 'on'
+}
+
+function looksLikeCloudflareImageId(value: string): boolean {
+  if (!value || /^https?:\/\//i.test(value)) {
+    return false
+  }
+
+  if (value.includes('/')) {
+    return false
+  }
+
+  if (/\.[a-z0-9]{2,5}$/i.test(value)) {
+    return false
+  }
+
+  return /^[A-Za-z0-9_-]{16,}$/.test(value)
+}
+
+function cloudflareImageUrl(env: Bindings, imageId: string): string | null {
+  const base = env.CF_IMAGES_BASE_URL
+
+  if (!base) {
+    return null
+  }
+
+  const variant = env.CF_IMAGES_VARIANT || 'public'
+  const normalizedBase = normalizeBaseUrl(base)
+  const normalizedId = imageId.replace(/^\/+|\/+$/g, '')
+  const normalizedVariant = variant.replace(/^\/+|\/+$/g, '')
+
+  return `${normalizedBase}/${normalizedId}/${normalizedVariant}`
+}
+
+function resolveAssetUrl(env: Bindings, value: unknown): string | null {
   const raw = asNullableString(value)
 
   if (!raw) {
@@ -57,17 +97,35 @@ function makeFileUrl(baseUrl: string, value: unknown): string | null {
     return raw
   }
 
-  return `${normalizeBaseUrl(baseUrl)}/${raw.replace(/^\/+/, '')}`
+  if (asBooleanString(env.USE_CLOUDFLARE_IMAGES) && looksLikeCloudflareImageId(raw)) {
+    const cloudflareUrl = cloudflareImageUrl(env, raw)
+    if (cloudflareUrl) {
+      return cloudflareUrl
+    }
+  }
+
+  return `${normalizeBaseUrl(env.URL_IMO360)}/${raw.replace(/^\/+/, '')}`
 }
 
-function adminImageUrl(baseUrl: string, filename: unknown): string | null {
+function makeFileUrl(env: Bindings, value: unknown): string | null {
+  return resolveAssetUrl(env, value)
+}
+
+function adminImageUrl(env: Bindings, filename: unknown): string | null {
   const raw = asNullableString(filename)
 
   if (!raw) {
     return null
   }
 
-  return `${normalizeBaseUrl(baseUrl)}/adminimagens/${raw}`
+  if (asBooleanString(env.USE_CLOUDFLARE_IMAGES)) {
+    const cloudflareUrl = cloudflareImageUrl(env, raw)
+    if (cloudflareUrl) {
+      return cloudflareUrl
+    }
+  }
+
+  return `${normalizeBaseUrl(env.URL_IMO360)}/adminimagens/${raw}`
 }
 
 function formatHour(value: unknown): string {
@@ -137,7 +195,7 @@ function toTitleCase(value: unknown): string {
 }
 
 function resolveSectionTopImage(params: {
-  baseUrl: string
+  env: Bindings
   optionId: unknown
   websiteImage: unknown
   adminImageName: unknown
@@ -149,10 +207,10 @@ function resolveSectionTopImage(params: {
   }
 
   if (optionId !== 0 && hasValue(params.optionId)) {
-    return adminImageUrl(params.baseUrl, params.adminImageName)
+    return adminImageUrl(params.env, params.adminImageName)
   }
 
-  return makeFileUrl(params.baseUrl, params.websiteImage)
+  return makeFileUrl(params.env, params.websiteImage)
 }
 
 export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
@@ -168,7 +226,6 @@ export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
   const adminImages = aggregate.adminImages
   const pages = aggregate.pages
   const colors = aggregate.colors
-  const baseUrl = env.URL_IMO360
 
   const street = `${asString(website.contacto_morada).trim()}${
     hasValue(website.contacto_codpostal) ? `, ${asString(website.contacto_codpostal)}` : ''
@@ -181,8 +238,8 @@ export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
   }`
 
   return {
-    ico: hasValue(website.ico) ? makeFileUrl(baseUrl, website.icon ?? website.ico) : null,
-    logo: hasValue(website.geral_logo) ? makeFileUrl(baseUrl, website.logo ?? website.geral_logo) : null,
+    ico: hasValue(website.ico) ? makeFileUrl(env, website.icon ?? website.ico) : null,
+    logo: hasValue(website.geral_logo) ? makeFileUrl(env, website.logo ?? website.geral_logo) : null,
     ami: website.website_ami,
     alvara: website.alvara,
     active: asBoolean(website.user_activated),
@@ -190,10 +247,10 @@ export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
     freguesia: toTitleCase(location.freguesia),
     postalcode: asString(website.contacto_codpostal),
     footer_contact: asString(website.contacto_footer_empresa),
-    footer_image: makeFileUrl(baseUrl, website.img_footer),
+    footer_image: makeFileUrl(env, website.img_footer),
     phone: asString(website.contacto_telefone),
     mobile: asString(website.contacto_telemovel),
-    reserved_image: makeFileUrl(baseUrl, website.img_reservedimov),
+    reserved_image: makeFileUrl(env, website.img_reservedimov),
     slug: asNumber(website.property_slug) === 2,
     numb_interm_credito: website.contact_interm_credit,
     widget_reatia: asNullableString(website.widget_reatia),
@@ -237,8 +294,8 @@ export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
       sliders: asNumber(website.websiteimgsliders_count),
       bgimage:
         asNumber(website.options_website_image_home) === 0 && hasValue(website.website_image_home)
-          ? makeFileUrl(baseUrl, website.website_image_home)
-          : adminImageUrl(baseUrl, adminImages.home),
+          ? makeFileUrl(env, website.website_image_home)
+          : adminImageUrl(env, adminImages.home),
       section: {
         destaques: website.section_destaque,
         exclusive: website.section_exclusive,
@@ -276,61 +333,61 @@ export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
     },
     bgimagetopo: {
       about: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_quemsomos,
         websiteImage: website.website_image_quemsomos,
         adminImageName: adminImages.quemsomos
       }),
       services: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_servicos,
         websiteImage: website.website_image_servicos,
         adminImageName: adminImages.servicos
       }),
       recruits: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_recrutamento,
         websiteImage: website.website_image_recrutamento,
         adminImageName: adminImages.recrutamento
       }),
       wantsell: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_querovender,
         websiteImage: website.website_image_querovender,
         adminImageName: adminImages.querovender
       }),
       imovs: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_imoveis,
         websiteImage: website.website_image_imoveis,
         adminImageName: adminImages.imoveis
       }),
       team: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_equipa,
         websiteImage: website.website_image_equipa,
         adminImageName: adminImages.equipa
       }),
       contacts: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_contactos,
         websiteImage: website.website_image_contactos,
         adminImageName: adminImages.contactos
       }),
       empreendimentos: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_empreendimentos,
         websiteImage: website.website_image_empreendimentos,
         adminImageName: adminImages.empreendimentos
       }),
       agency: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_agency,
         websiteImage: website.website_image_agency,
         adminImageName: adminImages.agency
       }),
       blogs: resolveSectionTopImage({
-        baseUrl,
+        env,
         optionId: website.options_website_image_blogs,
         websiteImage: website.website_image_blogs,
         adminImageName: adminImages.blogs

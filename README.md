@@ -38,6 +38,11 @@ HASHIDS_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
 HASHIDS_ALTERNATIVE_SALT=F28F86043514AEB26943F1A67F21B94251201F322199855F1DF1B982E3CF7C92
 HASHIDS_ALTERNATIVE_MIN_LENGTH=25
 HASHIDS_ALTERNATIVE_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
+
+# Opcional: Cloudflare Images (modo hibrido com fallback para URL_IMO360)
+USE_CLOUDFLARE_IMAGES=false
+CF_IMAGES_BASE_URL=https://imagedelivery.net/SEU_ACCOUNT_HASH
+CF_IMAGES_VARIANT=public
 ```
 
 ## 3. Executar localmente
@@ -72,7 +77,22 @@ Define os secrets na Cloudflare:
 ```bash
 npx wrangler secret put HASHIDS_SALT
 npx wrangler secret put API_AUTH_TOKEN
+npx wrangler secret put HASHIDS_ALTERNATIVE_SALT
 ```
+
+Se fores usar Cloudflare Images no ambiente remoto, define tambem:
+
+```bash
+npx wrangler secret put USE_CLOUDFLARE_IMAGES
+npx wrangler secret put CF_IMAGES_BASE_URL
+npx wrangler secret put CF_IMAGES_VARIANT
+```
+
+Quando `USE_CLOUDFLARE_IMAGES=true`, o endpoint tenta montar URL no formato:
+
+`CF_IMAGES_BASE_URL/<image_id>/CF_IMAGES_VARIANT`
+
+Se o valor guardado na base nao parecer um `image_id`, o worker faz fallback para o formato legado com `URL_IMO360`.
 
 `API_AUTH_TOKEN` é opcional neste starter e só será usado em rotas protegidas.
 
