@@ -7,6 +7,7 @@ const router = new Hono<AppEnv>()
 
 router.get('/website/:hash', async (c) => {
   const hash = c.req.param('hash')
+  const shouldUseCache = c.env.APP_ENV !== 'local'
 
   const cacheUrl = new URL(c.req.url)
   cacheUrl.search = ''
@@ -14,7 +15,7 @@ router.get('/website/:hash', async (c) => {
     method: 'GET'
   })
 
-  const cachedResponse = await caches.default.match(cacheKey)
+  const cachedResponse = shouldUseCache ? await caches.default.match(cacheKey) : null
 
   if (cachedResponse) {
     return cachedResponse
@@ -37,7 +38,9 @@ router.get('/website/:hash', async (c) => {
   const response = c.json(payload)
   response.headers.set('Cache-Control', `public, max-age=${ttl}`)
 
-  await caches.default.put(cacheKey, response.clone())
+  if (shouldUseCache) {
+    await caches.default.put(cacheKey, response.clone())
+  }
 
   return response
 })

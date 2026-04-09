@@ -113,7 +113,7 @@ async function querySingleRow<T extends RowDataPacket>(
       query?: (statement: string, values: QueryParams) => Promise<[T[]]>
     }
 
-    const run = client.execute ?? client.query
+    const run = client.query ?? client.execute
 
     if (!run) {
       throw new Error('Unsupported MySQL connection client')

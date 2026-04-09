@@ -12,11 +12,11 @@ HASHIDS_ALTERNATIVE_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
 # Set true to generate image URLs in format:
 # https://imagedelivery.net/<ACCOUNT_HASH>/<IMAGE_ID>/<VARIANT>
 USE_CLOUDFLARE_IMAGES=true
-CF_IMAGES_BASE_URL=https://images.crm360.pt/imo360
+CF_IMAGES_BASE_URL=https://images.crm360.pt
 CF_IMAGES_VARIANT=public
 
 # Legacy folder prefix (optional)
 # Example fixed prefix: WEBSITE_DEFAULT_PATH=agencias/imagens
 # Example by agency: WEBSITE_DEFAULT_PATH=agencias/{agency_id}/imagens
 # Laravel-like (User::defaultpathwebsite): WEBSITE_DEFAULT_PATH=users/{hash}/website
-WEBSITE_DEFAULT_PATH=
+WEBSITE_DEFAULT_PATH=users/{hash}/website

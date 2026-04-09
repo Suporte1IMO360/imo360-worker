@@ -90,6 +90,16 @@ function cloudflareImageUrl(env: Bindings, imageId: string): string | null {
   return `${normalizedBase}/${normalizedId}/${normalizedVariant}`
 }
 
+function cloudflarePathUrl(env: Bindings, path: string): string | null {
+  const base = env.CF_IMAGES_BASE_URL
+
+  if (!base) {
+    return null
+  }
+
+  return `${normalizeBaseUrl(base)}/${normalizePath(path)}`
+}
+
 function resolveLegacyPathPrefix(env: Bindings, agencyId: number, hash: string): string {
   const template = env.WEBSITE_DEFAULT_PATH
 
@@ -132,6 +142,14 @@ function resolveAssetUrl(env: Bindings, value: unknown, agencyId: number, hash: 
       : `${legacyPrefix}/${normalizedRaw}`
     : normalizedRaw
 
+  if (asBooleanString(env.USE_CLOUDFLARE_IMAGES)) {
+    const cloudflareUrl = cloudflarePathUrl(env, withPrefix)
+
+    if (cloudflareUrl) {
+      return cloudflareUrl
+    }
+  }
+
   return `${normalizeBaseUrl(env.URL_IMO360)}/${withPrefix}`
 }
 
@@ -147,9 +165,17 @@ function adminImageUrl(env: Bindings, filename: unknown): string | null {
   }
 
   if (asBooleanString(env.USE_CLOUDFLARE_IMAGES)) {
-    const cloudflareUrl = cloudflareImageUrl(env, raw)
-    if (cloudflareUrl) {
-      return cloudflareUrl
+    if (looksLikeCloudflareImageId(raw)) {
+      const cloudflareUrl = cloudflareImageUrl(env, raw)
+      if (cloudflareUrl) {
+        return cloudflareUrl
+      }
+    }
+
+    const cloudflarePath = cloudflarePathUrl(env, `adminimagens/${raw}`)
+
+    if (cloudflarePath) {
+      return cloudflarePath
     }
   }
 

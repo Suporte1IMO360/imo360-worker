@@ -8,10 +8,10 @@
   "vars": {
     "APP_ENV": "local",
     "URL_IMO360": "https://app.imo360crm.pt",
-    "USE_CLOUDFLARE_IMAGES": "false",
-    "CF_IMAGES_BASE_URL": "",
+    "USE_CLOUDFLARE_IMAGES": "true",
+    "CF_IMAGES_BASE_URL": "https://images.crm360.pt",
     "CF_IMAGES_VARIANT": "public",
-    "WEBSITE_DEFAULT_PATH": "",
+    "WEBSITE_DEFAULT_PATH": "users/{hash}/website",
     "HASHIDS_MIN_LENGTH": "6",
     "HASHIDS_ALPHABET": "abcdefghijklmnopqrstuvwxyz1234567890",
     "HASHIDS_ALTERNATIVE_MIN_LENGTH": "25",
@@ -30,6 +30,12 @@
   ],
 
   "observability": {
-    "enabled": true
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    },
+    "traces": {
+      "enabled": false
+    }
   }
 }

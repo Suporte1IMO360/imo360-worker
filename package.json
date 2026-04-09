@@ -8,7 +8,9 @@
     "deploy": "wrangler deploy",
     "check": "tsc --noEmit",
     "start": "wrangler dev",
-    "test:website": "node scripts/website-smoke.mjs"
+    "test:website": "node scripts/website-smoke.mjs",
+    "secrets:sync": "bash scripts/sync-dev-vars-to-cloudflare-secrets.sh .dev.vars",
+    "secrets:sync:prod": "bash scripts/sync-dev-vars-to-cloudflare-secrets.sh .dev.vars production"
   },
   "dependencies": {
     "hashids": "^2.3.0",
