@@ -3,6 +3,7 @@ import { decodeSingleHash } from '../utils/hashid'
 import {
   findConcelhosRowsOnlineOnly,
   findConcelhosRows,
+  findDisponibilidadeRows,
   findDistritosRowsOnlineOnly,
   findDistritosRows,
   findFreguesiasRowsOnlineOnly,
@@ -219,4 +220,19 @@ export async function getOtherPlacesByHash(
       }
     ]
   }
+}
+
+export async function getDisponibilidadesByHash(
+  env: Bindings,
+  hash: string,
+  options: { lang?: string; type?: string }
+): Promise<Record<string, string | null>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const lang = normalizeLang(options.lang)
+  const byColaborador = isFilled(options.type)
+  const scopeIds = resolveScopeIds(decodedId)
+
+  const rows = await findDisponibilidadeRows(env, scopeIds, byColaborador)
+
+  return toPluckMap(rows, (row) => row[lang])
 }

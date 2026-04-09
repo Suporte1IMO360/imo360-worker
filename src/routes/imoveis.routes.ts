@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
+  getDisponibilidadesByHash,
   getOtherPlacesByHash,
   getPlacesByHash,
   getTipoImovelByHash,
@@ -46,6 +47,16 @@ router.get('/otherplaces/:hash', async (c) => {
   const type = c.req.query('type')
 
   const payload = await getOtherPlacesByHash(c.env, hash, { qry, type })
+
+  return c.json(payload)
+})
+
+router.get('/disponibilidades/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const lang = c.req.query('lang')
+  const type = c.req.query('type')
+
+  const payload = await getDisponibilidadesByHash(c.env, hash, { lang, type })
 
   return c.json(payload)
 })
