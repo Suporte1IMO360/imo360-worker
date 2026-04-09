@@ -2,6 +2,7 @@ import type { Bindings } from '../types/env'
 import { encodeId, decodeSingleHash } from '../utils/hashid'
 import {
   findImoveisRandomRows,
+  findImoveisVirtualTourRows,
   findUserReferencePreferenceByAgencyId,
   type ImovelRandomRow
 } from '../repositories/imoveis.repository'
@@ -301,8 +302,19 @@ export async function getImoveisRandomByHash(
   const lang = normalizeLang(langInput)
   const decodedId = decodeSingleHash(env, hash)
   const scopeIds = resolveScopeIds(decodedId)
-  const typeReference = await findUserReferencePreferenceByAgencyId(env, decodedId)
   const rows = await findImoveisRandomRows(env, scopeIds)
+
+  return mapRowsToPayload(env, rows, lang, decodedId)
+}
+
+function mapRowsToPayload(
+  env: Bindings,
+  rows: ImovelRandomRow[],
+  lang: SupportedLang,
+  decodedId: number
+): Promise<ImovelRandomPayload[]> {
+  return (async () => {
+  const typeReference = await findUserReferencePreferenceByAgencyId(env, decodedId)
 
   return rows.map((row) => {
     const agencyHash = encodeId(env, row.agencia_id)
@@ -371,4 +383,18 @@ export async function getImoveisRandomByHash(
       freguesia: asString(row.freguesia_name)
     }
   })
+  })()
+}
+
+export async function getImoveisVirtualTourByHash(
+  env: Bindings,
+  hash: string,
+  langInput?: string
+): Promise<ImovelRandomPayload[]> {
+  const lang = normalizeLang(langInput)
+  const decodedId = decodeSingleHash(env, hash)
+  const scopeIds = resolveScopeIds(decodedId)
+  const rows = await findImoveisVirtualTourRows(env, scopeIds)
+
+  return mapRowsToPayload(env, rows, lang, decodedId)
 }
