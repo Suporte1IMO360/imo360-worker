@@ -143,6 +143,7 @@ git push -u origin main
 - `GET /api/estados/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/zonas/:hash[?type=1][&id=<zona_id>]`
 - `GET /api/ces/:hash[?type=1][&id=<ce_id>]`
+- `GET /api/distritos/:hash[?type=1]`
 - `GET /api/imoveis/:hash`
 - `GET /api/preview/:hash`
 

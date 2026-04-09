@@ -5,6 +5,7 @@ import {
   findConcelhosRowsOnlineOnly,
   findConcelhosRows,
   findDisponibilidadeRows,
+  findDistritoRowsByScope,
   findDistritosRowsOnlineOnly,
   findDistritosRows,
   findFreguesiasRowsOnlineOnly,
@@ -295,6 +296,20 @@ export async function getCesByHash(
   const ceIdFilter = parseOptionalPositiveInt(options.id)
 
   const rows = await findCeRows(env, scopeIds, byColaborador, ceIdFilter)
+
+  return toPluckMap(rows, (row) => row.name)
+}
+
+export async function getDistritosByHash(
+  env: Bindings,
+  hash: string,
+  options: { type?: string }
+): Promise<Record<string, string | null>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const byColaborador = isFilled(options.type)
+  const scopeIds = resolveScopeIds(decodedId)
+
+  const rows = await findDistritoRowsByScope(env, scopeIds, byColaborador)
 
   return toPluckMap(rows, (row) => row.name)
 }

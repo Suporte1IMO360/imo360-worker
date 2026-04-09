@@ -4,6 +4,7 @@ import { decodeSingleHash } from '../utils/hashid'
 import {
   getCesByHash,
   getDisponibilidadesByHash,
+  getDistritosByHash,
   getEstadosByHash,
   getOtherPlacesByHash,
   getPlacesByHash,
@@ -90,6 +91,15 @@ router.get('/ces/:hash', async (c) => {
   const id = c.req.query('id')
 
   const payload = await getCesByHash(c.env, hash, { type, id })
+
+  return c.json(payload)
+})
+
+router.get('/distritos/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const type = c.req.query('type')
+
+  const payload = await getDistritosByHash(c.env, hash, { type })
 
   return c.json(payload)
 })

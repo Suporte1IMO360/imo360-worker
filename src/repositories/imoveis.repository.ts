@@ -59,6 +59,11 @@ type PlaceNameRow = RowDataPacket & {
   name: string | null
 }
 
+type DistritoRow = RowDataPacket & {
+  id: number
+  name: string | null
+}
+
 async function queryRows<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -310,6 +315,35 @@ export async function findCeRows(
   const params = ceIdFilter ? [...userIds, ceIdFilter] : userIds
 
   return queryRows<CeRow>(env, sql, params)
+}
+
+export async function findDistritoRowsByScope(
+  env: Bindings,
+  userIds: number[],
+  byColaborador: boolean
+): Promise<DistritoRow[]> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const scopeColumn = byColaborador ? 'colaborador_id' : 'agencia_id'
+  const userPlaceholders = placeholders(userIds)
+
+  const sql = `
+    SELECT d.id, d.name
+    FROM distritos d
+    WHERE d.id IN (
+      SELECT DISTINCT i.distrito_id
+      FROM imovs i
+      WHERE i.${scopeColumn} IN (${userPlaceholders})
+        AND i.online = 1
+        AND i.deleted_at IS NULL
+        AND i.distrito_id IS NOT NULL
+    )
+    ORDER BY d.name ASC
+  `
+
+  return queryRows<DistritoRow>(env, sql, userIds)
 }
 
 export async function findDistritosRows(
