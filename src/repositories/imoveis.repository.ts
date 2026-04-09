@@ -24,6 +24,11 @@ type DealTypeRow = RowDataPacket & {
   de: string | null
 }
 
+type PlaceNameRow = RowDataPacket & {
+  id: number
+  name: string | null
+}
+
 async function queryRows<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -52,6 +57,40 @@ async function queryRows<T extends RowDataPacket>(
 
 function placeholders(values: unknown[]): string {
   return values.map(() => '?').join(', ')
+}
+
+async function findPlaceRows(
+  env: Bindings,
+  options: {
+    table: 'distritos' | 'concelhos' | 'freguesias'
+    placeColumnOnImov: 'distrito_id' | 'concelho_id' | 'freguesia_id'
+    term: string
+    userIds: number[]
+    byColaborador: boolean
+  }
+): Promise<PlaceNameRow[]> {
+  if (options.userIds.length === 0) {
+    return []
+  }
+
+  const scopeColumn = options.byColaborador ? 'colaborador_id' : 'agencia_id'
+  const userPlaceholders = placeholders(options.userIds)
+
+  const sql = `
+    SELECT p.id, p.name
+    FROM ${options.table} p
+    WHERE p.name LIKE ?
+      AND p.id IN (
+        SELECT DISTINCT i.${options.placeColumnOnImov}
+        FROM imovs i
+        WHERE i.${scopeColumn} IN (${userPlaceholders})
+          AND i.online = 1
+          AND i.deleted_at IS NULL
+      )
+    ORDER BY p.name ASC
+  `
+
+  return queryRows<PlaceNameRow>(env, sql, [`%${options.term}%`, ...options.userIds])
 }
 
 export async function findImovelNatureRows(
@@ -113,4 +152,49 @@ export async function findImovelDealTypeRows(
   `
 
   return queryRows<DealTypeRow>(env, sql, userIds)
+}
+
+export async function findDistritosRows(
+  env: Bindings,
+  term: string,
+  userIds: number[],
+  byColaborador: boolean
+): Promise<PlaceNameRow[]> {
+  return findPlaceRows(env, {
+    table: 'distritos',
+    placeColumnOnImov: 'distrito_id',
+    term,
+    userIds,
+    byColaborador
+  })
+}
+
+export async function findConcelhosRows(
+  env: Bindings,
+  term: string,
+  userIds: number[],
+  byColaborador: boolean
+): Promise<PlaceNameRow[]> {
+  return findPlaceRows(env, {
+    table: 'concelhos',
+    placeColumnOnImov: 'concelho_id',
+    term,
+    userIds,
+    byColaborador
+  })
+}
+
+export async function findFreguesiasRows(
+  env: Bindings,
+  term: string,
+  userIds: number[],
+  byColaborador: boolean
+): Promise<PlaceNameRow[]> {
+  return findPlaceRows(env, {
+    table: 'freguesias',
+    placeColumnOnImov: 'freguesia_id',
+    term,
+    userIds,
+    byColaborador
+  })
 }

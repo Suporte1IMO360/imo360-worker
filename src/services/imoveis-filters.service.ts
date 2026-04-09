@@ -1,6 +1,9 @@
 import type { Bindings } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
+  findConcelhosRows,
+  findDistritosRows,
+  findFreguesiasRows,
   findImovelDealTypeRows,
   findImovelNatureRows
 } from '../repositories/imoveis.repository'
@@ -45,6 +48,32 @@ function toPluckMap<T extends { id: number }>(
   return result
 }
 
+function toTitleCase(text: string | null): string {
+  if (!text) {
+    return ''
+  }
+
+  return text
+    .toLocaleLowerCase('pt-PT')
+    .replace(/\b([a-z\u00c0-\u017f])/g, (match) => match.toLocaleUpperCase('pt-PT'))
+}
+
+function paginateLikeLaravel<T>(items: T[], perPage: number) {
+  const currentPage = 1
+  const total = items.length
+  const data = items.slice(0, perPage)
+
+  return {
+    current_page: currentPage,
+    data,
+    from: total > 0 ? 1 : null,
+    last_page: Math.max(1, Math.ceil(total / perPage)),
+    per_page: perPage,
+    to: data.length > 0 ? data.length : null,
+    total
+  }
+}
+
 export async function getTipoImovelByHash(
   env: Bindings,
   hash: string,
@@ -73,4 +102,61 @@ export async function getTipoNegocioByHash(
   const rows = await findImovelDealTypeRows(env, scopeIds, byColaborador)
 
   return toPluckMap(rows, (row) => row[lang])
+}
+
+export async function getPlacesByHash(
+  env: Bindings,
+  hash: string,
+  options: { qry?: string; type?: string }
+) {
+  const queryText = options.qry ?? ''
+
+  if (/^\d+$/.test(queryText.trim())) {
+    return paginateLikeLaravel([], 5)
+  }
+
+  const decodedId = decodeSingleHash(env, hash)
+  const byColaborador = isFilled(options.type)
+  const scopeIds = resolveScopeIds(decodedId)
+  const term = queryText.trim()
+
+  const [distritos, concelhos, freguesias] = await Promise.all([
+    findDistritosRows(env, term, scopeIds, byColaborador),
+    findConcelhosRows(env, term, scopeIds, byColaborador),
+    findFreguesiasRows(env, term, scopeIds, byColaborador)
+  ])
+
+  const results: Array<{
+    text: string
+    children: Array<{ id: string; text: string }>
+  }> = []
+
+  const distritoChildren = distritos.map((row) => ({
+    id: `distrito_${row.id}`,
+    text: toTitleCase(row.name)
+  }))
+
+  if (distritoChildren.length > 0) {
+    results.push({ text: 'Distritos', children: distritoChildren })
+  }
+
+  const concelhoChildren = concelhos.map((row) => ({
+    id: `concelho_${row.id}`,
+    text: toTitleCase(row.name)
+  }))
+
+  if (concelhoChildren.length > 0) {
+    results.push({ text: 'Concelhos', children: concelhoChildren })
+  }
+
+  const freguesiaChildren = freguesias.map((row) => ({
+    id: `freguesia_${row.id}`,
+    text: toTitleCase(row.name)
+  }))
+
+  if (freguesiaChildren.length > 0) {
+    results.push({ text: 'Freguesias', children: freguesiaChildren })
+  }
+
+  return paginateLikeLaravel(results, 5)
 }

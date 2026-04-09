@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
+  getPlacesByHash,
   getTipoImovelByHash,
   getTipoNegocioByHash
 } from '../services/imoveis-filters.service'
@@ -24,6 +25,16 @@ router.get('/negocios/:hash', async (c) => {
   const type = c.req.query('type')
 
   const payload = await getTipoNegocioByHash(c.env, hash, { lang, type })
+
+  return c.json(payload)
+})
+
+router.get('/places/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const qry = c.req.query('qry')
+  const type = c.req.query('type')
+
+  const payload = await getPlacesByHash(c.env, hash, { qry, type })
 
   return c.json(payload)
 })
