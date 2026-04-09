@@ -2,6 +2,7 @@ import type { Bindings } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
   findCeRows,
+  findConcelhoDistritoById,
   findConcelhoRowsByScope,
   findConcelhosRowsOnlineOnly,
   findConcelhosRows,
@@ -333,4 +334,17 @@ export async function getConcelhosByHash(
   )
 
   return toPluckMap(rows, (row) => toTitleCase(row.name))
+}
+
+export async function getConcelhoDistritoById(
+  env: Bindings,
+  concelhoid: string
+): Promise<{ distrito_id: number | null } | null> {
+  const concelhoId = parseOptionalPositiveInt(concelhoid)
+
+  if (!concelhoId) {
+    return null
+  }
+
+  return findConcelhoDistritoById(env, concelhoId)
 }

@@ -69,6 +69,10 @@ type ConcelhoRow = RowDataPacket & {
   name: string | null
 }
 
+type ConcelhoDistritoRow = RowDataPacket & {
+  distrito_id: number | null
+}
+
 async function queryRows<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -383,6 +387,22 @@ export async function findConcelhoRowsByScope(
   const params = distritoIdFilter ? [...userIds, distritoIdFilter] : userIds
 
   return queryRows<ConcelhoRow>(env, sql, params)
+}
+
+export async function findConcelhoDistritoById(
+  env: Bindings,
+  concelhoId: number
+): Promise<ConcelhoDistritoRow | null> {
+  const sql = `
+    SELECT c.distrito_id
+    FROM concelhos c
+    WHERE c.id = ?
+    LIMIT 1
+  `
+
+  const rows = await queryRows<ConcelhoDistritoRow>(env, sql, [concelhoId])
+
+  return rows[0] ?? null
 }
 
 export async function findDistritosRows(
