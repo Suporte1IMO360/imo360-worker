@@ -83,6 +83,73 @@ type FreguesiaConcelhoRow = RowDataPacket & {
   concelho_id: number | null
 }
 
+export type ImovelRandomRow = RowDataPacket & {
+  id: number
+  agencia_id: number
+  colaborador_id: number | null
+  ref: string | null
+  refinterna: string | null
+  ref_secundary: string | null
+  slug: string | null
+  valor: string | null
+  destacar: number | null
+  novidade: number | null
+  baixapreco: number | null
+  exclusivo: number | null
+  wcs: number | null
+  quartos: number | null
+  garagens: number | null
+  cad_area_bruta_privativa: string | null
+  cad_area_bruta_dependente: string | null
+  cad_area_terreno: string | null
+  info_descricao: string | null
+  info_descricao_en: string | null
+  info_descricao_es: string | null
+  info_descricao_fr: string | null
+  info_descricao_de: string | null
+  titulo_publicacao: string | null
+  titulo_publicacao_en: string | null
+  titulo_publicacao_es: string | null
+  titulo_publicacao_fr: string | null
+  titulo_publicacao_de: string | null
+  video: string | null
+  publicar_video: number | null
+  link_3D: string | null
+  online_link_vt: number | null
+  images: string | null
+  imovnature_id: number | null
+  imovnature_name: string | null
+  imovnature_pt: string | null
+  imovnature_en: string | null
+  imovnature_es: string | null
+  imovnature_fr: string | null
+  imovnature_de: string | null
+  imovdisp_pt: string | null
+  imovdisp_en: string | null
+  imovdisp_es: string | null
+  imovdisp_fr: string | null
+  imovdisp_de: string | null
+  imovtn_pt: string | null
+  imovtn_en: string | null
+  imovtn_es: string | null
+  imovtn_fr: string | null
+  imovtn_de: string | null
+  concelho_name: string | null
+  freguesia_name: string | null
+  ocultarDadosConsultor: number | null
+  property_title: number | null
+  agencia_name: string | null
+  agencia_email: string | null
+  agencia_foto: string | null
+  colaborador_name: string | null
+  colaborador_email: string | null
+  colaborador_foto: string | null
+}
+
+type UserReferencePreferenceRow = RowDataPacket & {
+  typereferenceimovs: number | null
+}
+
 async function queryRows<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -462,6 +529,115 @@ export async function findFreguesiaConcelhoById(
   const rows = await queryRows<FreguesiaConcelhoRow>(env, sql, [freguesiaId])
 
   return rows[0] ?? null
+}
+
+export async function findImoveisRandomRows(
+  env: Bindings,
+  userIds: number[]
+): Promise<ImovelRandomRow[]> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const userPlaceholders = placeholders(userIds)
+
+  const sql = `
+    SELECT
+      i.id,
+      i.agencia_id,
+      i.colaborador_id,
+      i.ref,
+      i.refinterna,
+      i.ref_secundary,
+      i.slug,
+      i.valor,
+      i.destacar,
+      i.novidade,
+      i.baixapreco,
+      i.exclusivo,
+      i.wcs,
+      i.quartos,
+      i.garagens,
+      i.cad_area_bruta_privativa,
+      i.cad_area_bruta_dependente,
+      i.cad_area_terreno,
+      i.info_descricao,
+      i.info_descricao_en,
+      i.info_descricao_es,
+      i.info_descricao_fr,
+      i.info_descricao_de,
+      i.titulo_publicacao,
+      i.titulo_publicacao_en,
+      i.titulo_publicacao_es,
+      i.titulo_publicacao_fr,
+      i.titulo_publicacao_de,
+      i.video,
+      i.publicar_video,
+      i.link_3D,
+      i.online_link_vt,
+      i.images,
+      i.imovnature_id,
+      n.name AS imovnature_name,
+      n.pt AS imovnature_pt,
+      n.en AS imovnature_en,
+      n.es AS imovnature_es,
+      n.fr AS imovnature_fr,
+      n.de AS imovnature_de,
+      d.pt AS imovdisp_pt,
+      d.en AS imovdisp_en,
+      d.es AS imovdisp_es,
+      d.fr AS imovdisp_fr,
+      d.de AS imovdisp_de,
+      t.pt AS imovtn_pt,
+      t.en AS imovtn_en,
+      t.es AS imovtn_es,
+      t.fr AS imovtn_fr,
+      t.de AS imovtn_de,
+      co.name AS concelho_name,
+      fr.name AS freguesia_name,
+      w.ocultarDadosConsultor,
+      w.property_title,
+      ag.name AS agencia_name,
+      ag.email AS agencia_email,
+      ag.foto AS agencia_foto,
+      col.name AS colaborador_name,
+      col.email AS colaborador_email,
+      col.foto AS colaborador_foto
+    FROM imovs i
+    LEFT JOIN imovnatures n ON n.id = i.imovnature_id
+    LEFT JOIN imovdisps d ON d.id = i.imovdisp_id
+    LEFT JOIN imovtns t ON t.id = i.imovtn_id
+    LEFT JOIN concelhos co ON co.id = i.concelho_id
+    LEFT JOIN freguesias fr ON fr.id = i.freguesia_id
+    LEFT JOIN websites w ON w.agencia_id = i.agencia_id
+    LEFT JOIN users ag ON ag.id = i.agencia_id
+    LEFT JOIN users col ON col.id = i.colaborador_id
+    WHERE i.agencia_id IN (${userPlaceholders})
+      AND i.online = 1
+      AND i.destacar = 1
+      AND i.deleted_at IS NULL
+      AND i.colaborador_id IS NOT NULL
+    ORDER BY i.destacar DESC, RAND()
+    LIMIT 6
+  `
+
+  return queryRows<ImovelRandomRow>(env, sql, userIds)
+}
+
+export async function findUserReferencePreferenceByAgencyId(
+  env: Bindings,
+  agencyId: number
+): Promise<number | null> {
+  const sql = `
+    SELECT u.typereferenceimovs
+    FROM users u
+    WHERE u.agencia_id = ?
+    LIMIT 1
+  `
+
+  const rows = await queryRows<UserReferencePreferenceRow>(env, sql, [agencyId])
+
+  return rows[0]?.typereferenceimovs ?? null
 }
 
 export async function findDistritosRows(
