@@ -1,8 +1,11 @@
 import type { Bindings } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
+  findConcelhosRowsOnlineOnly,
   findConcelhosRows,
+  findDistritosRowsOnlineOnly,
   findDistritosRows,
+  findFreguesiasRowsOnlineOnly,
   findFreguesiasRows,
   findImovelDealTypeRows,
   findImovelNatureRows
@@ -159,4 +162,61 @@ export async function getPlacesByHash(
   }
 
   return paginateLikeLaravel(results, 5)
+}
+
+export async function getOtherPlacesByHash(
+  env: Bindings,
+  hash: string,
+  options: { qry?: string; type?: string }
+): Promise<
+  | []
+  | {
+      results: Array<{
+        text: string
+        children: Array<{ id: string; text: string }>
+      }>
+    }
+> {
+  const queryText = options.qry ?? ''
+
+  if (/^\d+$/.test(queryText.trim())) {
+    return []
+  }
+
+  const decodedId = decodeSingleHash(env, hash)
+  const byColaborador = isFilled(options.type)
+  const scopeIds = resolveScopeIds(decodedId)
+  const term = queryText.trim()
+
+  const [distritos, concelhos, freguesias] = await Promise.all([
+    findDistritosRowsOnlineOnly(env, term, scopeIds, byColaborador),
+    findConcelhosRowsOnlineOnly(env, term, scopeIds, byColaborador),
+    findFreguesiasRowsOnlineOnly(env, term, scopeIds, byColaborador)
+  ])
+
+  return {
+    results: [
+      {
+        text: 'Distritos',
+        children: distritos.map((row) => ({
+          id: `distrito_${row.id}`,
+          text: row.name ?? ''
+        }))
+      },
+      {
+        text: 'Concelhos',
+        children: concelhos.map((row) => ({
+          id: `concelho_${row.id}`,
+          text: row.name ?? ''
+        }))
+      },
+      {
+        text: 'Freguesias',
+        children: freguesias.map((row) => ({
+          id: `freguesia_${row.id}`,
+          text: `${row.name ?? ''} (freguesia)`
+        }))
+      }
+    ]
+  }
 }

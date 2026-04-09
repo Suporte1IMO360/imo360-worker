@@ -67,6 +67,7 @@ async function findPlaceRows(
     term: string
     userIds: number[]
     byColaborador: boolean
+    excludeDeleted: boolean
   }
 ): Promise<PlaceNameRow[]> {
   if (options.userIds.length === 0) {
@@ -75,6 +76,7 @@ async function findPlaceRows(
 
   const scopeColumn = options.byColaborador ? 'colaborador_id' : 'agencia_id'
   const userPlaceholders = placeholders(options.userIds)
+  const deletedFilter = options.excludeDeleted ? 'AND i.deleted_at IS NULL' : ''
 
   const sql = `
     SELECT p.id, p.name
@@ -85,7 +87,7 @@ async function findPlaceRows(
         FROM imovs i
         WHERE i.${scopeColumn} IN (${userPlaceholders})
           AND i.online = 1
-          AND i.deleted_at IS NULL
+          ${deletedFilter}
       )
     ORDER BY p.name ASC
   `
@@ -165,7 +167,8 @@ export async function findDistritosRows(
     placeColumnOnImov: 'distrito_id',
     term,
     userIds,
-    byColaborador
+    byColaborador,
+    excludeDeleted: true
   })
 }
 
@@ -180,7 +183,8 @@ export async function findConcelhosRows(
     placeColumnOnImov: 'concelho_id',
     term,
     userIds,
-    byColaborador
+    byColaborador,
+    excludeDeleted: true
   })
 }
 
@@ -195,6 +199,55 @@ export async function findFreguesiasRows(
     placeColumnOnImov: 'freguesia_id',
     term,
     userIds,
-    byColaborador
+    byColaborador,
+    excludeDeleted: true
+  })
+}
+
+export async function findDistritosRowsOnlineOnly(
+  env: Bindings,
+  term: string,
+  userIds: number[],
+  byColaborador: boolean
+): Promise<PlaceNameRow[]> {
+  return findPlaceRows(env, {
+    table: 'distritos',
+    placeColumnOnImov: 'distrito_id',
+    term,
+    userIds,
+    byColaborador,
+    excludeDeleted: false
+  })
+}
+
+export async function findConcelhosRowsOnlineOnly(
+  env: Bindings,
+  term: string,
+  userIds: number[],
+  byColaborador: boolean
+): Promise<PlaceNameRow[]> {
+  return findPlaceRows(env, {
+    table: 'concelhos',
+    placeColumnOnImov: 'concelho_id',
+    term,
+    userIds,
+    byColaborador,
+    excludeDeleted: false
+  })
+}
+
+export async function findFreguesiasRowsOnlineOnly(
+  env: Bindings,
+  term: string,
+  userIds: number[],
+  byColaborador: boolean
+): Promise<PlaceNameRow[]> {
+  return findPlaceRows(env, {
+    table: 'freguesias',
+    placeColumnOnImov: 'freguesia_id',
+    term,
+    userIds,
+    byColaborador,
+    excludeDeleted: false
   })
 }
