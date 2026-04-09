@@ -3,6 +3,7 @@ import type { AppEnv } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
   getCesByHash,
+  getConcelhosByHash,
   getDisponibilidadesByHash,
   getDistritosByHash,
   getEstadosByHash,
@@ -100,6 +101,16 @@ router.get('/distritos/:hash', async (c) => {
   const type = c.req.query('type')
 
   const payload = await getDistritosByHash(c.env, hash, { type })
+
+  return c.json(payload)
+})
+
+router.get('/concelhos/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const type = c.req.query('type')
+  const distrito_id = c.req.query('distrito_id')
+
+  const payload = await getConcelhosByHash(c.env, hash, { type, distrito_id })
 
   return c.json(payload)
 })

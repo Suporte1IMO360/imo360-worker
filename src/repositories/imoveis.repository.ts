@@ -64,6 +64,11 @@ type DistritoRow = RowDataPacket & {
   name: string | null
 }
 
+type ConcelhoRow = RowDataPacket & {
+  id: number
+  name: string | null
+}
+
 async function queryRows<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -344,6 +349,40 @@ export async function findDistritoRowsByScope(
   `
 
   return queryRows<DistritoRow>(env, sql, userIds)
+}
+
+export async function findConcelhoRowsByScope(
+  env: Bindings,
+  userIds: number[],
+  byColaborador: boolean,
+  distritoIdFilter?: number
+): Promise<ConcelhoRow[]> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const scopeColumn = byColaborador ? 'colaborador_id' : 'agencia_id'
+  const userPlaceholders = placeholders(userIds)
+  const distritoFilterSql = distritoIdFilter ? 'AND c.distrito_id = ?' : ''
+
+  const sql = `
+    SELECT c.id, c.name
+    FROM concelhos c
+    WHERE c.id IN (
+      SELECT DISTINCT i.concelho_id
+      FROM imovs i
+      WHERE i.${scopeColumn} IN (${userPlaceholders})
+        AND i.online = 1
+        AND i.deleted_at IS NULL
+        AND i.concelho_id IS NOT NULL
+    )
+    ${distritoFilterSql}
+    ORDER BY c.name ASC
+  `
+
+  const params = distritoIdFilter ? [...userIds, distritoIdFilter] : userIds
+
+  return queryRows<ConcelhoRow>(env, sql, params)
 }
 
 export async function findDistritosRows(

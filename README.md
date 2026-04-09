@@ -144,6 +144,7 @@ git push -u origin main
 - `GET /api/zonas/:hash[?type=1][&id=<zona_id>]`
 - `GET /api/ces/:hash[?type=1][&id=<ce_id>]`
 - `GET /api/distritos/:hash[?type=1]`
+- `GET /api/concelhos/:hash[?type=1][&distrito_id=<distrito_id>]`
 - `GET /api/imoveis/:hash`
 - `GET /api/preview/:hash`
 

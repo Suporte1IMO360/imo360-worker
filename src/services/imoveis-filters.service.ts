@@ -2,6 +2,7 @@ import type { Bindings } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
   findCeRows,
+  findConcelhoRowsByScope,
   findConcelhosRowsOnlineOnly,
   findConcelhosRows,
   findDisponibilidadeRows,
@@ -312,4 +313,24 @@ export async function getDistritosByHash(
   const rows = await findDistritoRowsByScope(env, scopeIds, byColaborador)
 
   return toPluckMap(rows, (row) => row.name)
+}
+
+export async function getConcelhosByHash(
+  env: Bindings,
+  hash: string,
+  options: { type?: string; distrito_id?: string }
+): Promise<Record<string, string | null>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const byColaborador = isFilled(options.type)
+  const scopeIds = resolveScopeIds(decodedId)
+  const distritoIdFilter = parseOptionalPositiveInt(options.distrito_id)
+
+  const rows = await findConcelhoRowsByScope(
+    env,
+    scopeIds,
+    byColaborador,
+    distritoIdFilter
+  )
+
+  return toPluckMap(rows, (row) => toTitleCase(row.name))
 }
