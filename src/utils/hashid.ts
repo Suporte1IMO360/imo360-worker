@@ -60,7 +60,14 @@ function decodeOnConnection(
     return null
   }
 
-  const decoded = new Hashids(config.salt, config.minLength, config.alphabet).decode(hash)
+  let decoded: unknown[]
+
+  try {
+    decoded = new Hashids(config.salt, config.minLength, config.alphabet).decode(hash)
+  } catch {
+    return null
+  }
+
   const id = Number(decoded[0])
 
   if (!id) {

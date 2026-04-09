@@ -108,6 +108,24 @@ git push -u origin main
 - `GET /api/imoveis/:hash`
 - `GET /api/preview/:hash`
 
+## 8.1 Validar apenas endpoint website
+
+Com o worker a correr, executa:
+
+```bash
+npm run test:website
+```
+
+Variaveis opcionais para testar outros hashes:
+
+```bash
+BASE_URL=http://localhost:8788 \
+WEBSITE_VALID_HASH=34mm93 \
+WEBSITE_ALT_HASH=12rdzpm54o34mm938g97vnl6k \
+WEBSITE_INVALID_HASH=hash-invalido-123 \
+npm run test:website
+```
+
 ## 9. Notas importantes
 
 - O endpoint `website` foi simplificado para um primeiro esqueleto seguro; o teu método atual é muito maior e deve ser migrado por blocos.
