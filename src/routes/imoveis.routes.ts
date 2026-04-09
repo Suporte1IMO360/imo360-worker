@@ -7,7 +7,8 @@ import {
   getOtherPlacesByHash,
   getPlacesByHash,
   getTipoImovelByHash,
-  getTipoNegocioByHash
+  getTipoNegocioByHash,
+  getZonasByHash
 } from '../services/imoveis-filters.service'
 
 const router = new Hono<AppEnv>()
@@ -68,6 +69,16 @@ router.get('/estados/:hash', async (c) => {
   const type = c.req.query('type')
 
   const payload = await getEstadosByHash(c.env, hash, { lang, type })
+
+  return c.json(payload)
+})
+
+router.get('/zonas/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const type = c.req.query('type')
+  const id = c.req.query('id')
+
+  const payload = await getZonasByHash(c.env, hash, { type, id })
 
   return c.json(payload)
 })

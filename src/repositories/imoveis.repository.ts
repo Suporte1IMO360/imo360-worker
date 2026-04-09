@@ -44,6 +44,11 @@ type EstadoRow = RowDataPacket & {
   de: string | null
 }
 
+type ZonaRow = RowDataPacket & {
+  id: number
+  name: string | null
+}
+
 type PlaceNameRow = RowDataPacket & {
   id: number
   name: string | null
@@ -234,6 +239,39 @@ export async function findEstadoRows(
   `
 
   return queryRows<EstadoRow>(env, sql, userIds)
+}
+
+export async function findZonaRows(
+  env: Bindings,
+  userIds: number[],
+  byColaborador: boolean,
+  zonaIdFilter?: number
+): Promise<ZonaRow[]> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const scopeColumn = byColaborador ? 'colaborador_id' : 'agencia_id'
+  const userPlaceholders = placeholders(userIds)
+  const zonaFilterSql = zonaIdFilter ? 'AND z.id = ?' : ''
+
+  const sql = `
+    SELECT z.id, z.name
+    FROM zonas z
+    WHERE z.id IN (
+      SELECT DISTINCT i.zona_id
+      FROM imovs i
+      WHERE i.${scopeColumn} IN (${userPlaceholders})
+        AND i.online = 1
+        AND i.zona_id IS NOT NULL
+    )
+    ${zonaFilterSql}
+    ORDER BY z.name ASC
+  `
+
+  const params = zonaIdFilter ? [...userIds, zonaIdFilter] : userIds
+
+  return queryRows<ZonaRow>(env, sql, params)
 }
 
 export async function findDistritosRows(

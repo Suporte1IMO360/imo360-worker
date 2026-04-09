@@ -10,7 +10,8 @@ import {
   findFreguesiasRows,
   findEstadoRows,
   findImovelDealTypeRows,
-  findImovelNatureRows
+  findImovelNatureRows,
+  findZonaRows
 } from '../repositories/imoveis.repository'
 
 type SupportedLang = 'pt' | 'en' | 'es' | 'fr' | 'de'
@@ -30,6 +31,20 @@ function normalizeLang(lang: string | undefined): SupportedLang {
 
 function isFilled(value: string | undefined): boolean {
   return Boolean(value && value.trim() !== '')
+}
+
+function parseOptionalPositiveInt(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+
+  if (!/^\d+$/.test(trimmed)) {
+    return undefined
+  }
+
+  return Number.parseInt(trimmed, 10)
 }
 
 function resolveScopeIds(decodedId: number): number[] {
@@ -251,4 +266,19 @@ export async function getEstadosByHash(
   const rows = await findEstadoRows(env, scopeIds, byColaborador)
 
   return toPluckMap(rows, (row) => row[lang])
+}
+
+export async function getZonasByHash(
+  env: Bindings,
+  hash: string,
+  options: { type?: string; id?: string }
+): Promise<Record<string, string | null>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const byColaborador = isFilled(options.type)
+  const scopeIds = resolveScopeIds(decodedId)
+  const zonaIdFilter = parseOptionalPositiveInt(options.id)
+
+  const rows = await findZonaRows(env, scopeIds, byColaborador, zonaIdFilter)
+
+  return toPluckMap(rows, (row) => row.name)
 }
