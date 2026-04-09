@@ -46,6 +46,10 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
 }
 
+function normalizePath(path: string): string {
+  return path.replace(/^\/+|\/+$/g, '')
+}
+
 function asBooleanString(value: string | undefined): boolean {
   if (!value) {
     return false
@@ -80,13 +84,29 @@ function cloudflareImageUrl(env: Bindings, imageId: string): string | null {
 
   const variant = env.CF_IMAGES_VARIANT || 'public'
   const normalizedBase = normalizeBaseUrl(base)
-  const normalizedId = imageId.replace(/^\/+|\/+$/g, '')
-  const normalizedVariant = variant.replace(/^\/+|\/+$/g, '')
+  const normalizedId = normalizePath(imageId)
+  const normalizedVariant = normalizePath(variant)
 
   return `${normalizedBase}/${normalizedId}/${normalizedVariant}`
 }
 
-function resolveAssetUrl(env: Bindings, value: unknown): string | null {
+function resolveLegacyPathPrefix(env: Bindings, agencyId: number, hash: string): string {
+  const template = env.WEBSITE_DEFAULT_PATH
+
+  if (!template) {
+    return ''
+  }
+
+  return normalizePath(
+    template
+      .replace(/\{agency_id\}/gi, String(agencyId))
+      .replace(/\{hash\}/gi, hash)
+      .replace(/\{agency_hash\}/gi, hash)
+      .replace(/\{user_hash\}/gi, hash)
+  )
+}
+
+function resolveAssetUrl(env: Bindings, value: unknown, agencyId: number, hash: string): string | null {
   const raw = asNullableString(value)
 
   if (!raw) {
@@ -104,11 +124,19 @@ function resolveAssetUrl(env: Bindings, value: unknown): string | null {
     }
   }
 
-  return `${normalizeBaseUrl(env.URL_IMO360)}/${raw.replace(/^\/+/, '')}`
+  const normalizedRaw = raw.replace(/^\/+/, '')
+  const legacyPrefix = resolveLegacyPathPrefix(env, agencyId, hash)
+  const withPrefix = legacyPrefix
+    ? normalizedRaw.startsWith(`${legacyPrefix}/`) || normalizedRaw === legacyPrefix
+      ? normalizedRaw
+      : `${legacyPrefix}/${normalizedRaw}`
+    : normalizedRaw
+
+  return `${normalizeBaseUrl(env.URL_IMO360)}/${withPrefix}`
 }
 
-function makeFileUrl(env: Bindings, value: unknown): string | null {
-  return resolveAssetUrl(env, value)
+function makeFileUrl(env: Bindings, value: unknown, agencyId: number, hash: string): string | null {
+  return resolveAssetUrl(env, value, agencyId, hash)
 }
 
 function adminImageUrl(env: Bindings, filename: unknown): string | null {
@@ -196,6 +224,8 @@ function toTitleCase(value: unknown): string {
 
 function resolveSectionTopImage(params: {
   env: Bindings
+  agencyId: number
+  hash: string
   optionId: unknown
   websiteImage: unknown
   adminImageName: unknown
@@ -210,7 +240,7 @@ function resolveSectionTopImage(params: {
     return adminImageUrl(params.env, params.adminImageName)
   }
 
-  return makeFileUrl(params.env, params.websiteImage)
+  return makeFileUrl(params.env, params.websiteImage, params.agencyId, params.hash)
 }
 
 export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
@@ -238,8 +268,8 @@ export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
   }`
 
   return {
-    ico: hasValue(website.ico) ? makeFileUrl(env, website.icon ?? website.ico) : null,
-    logo: hasValue(website.geral_logo) ? makeFileUrl(env, website.logo ?? website.geral_logo) : null,
+    ico: hasValue(website.ico) ? makeFileUrl(env, website.icon ?? website.ico, agencyId, hash) : null,
+    logo: hasValue(website.geral_logo) ? makeFileUrl(env, website.logo ?? website.geral_logo, agencyId, hash) : null,
     ami: website.website_ami,
     alvara: website.alvara,
     active: asBoolean(website.user_activated),
@@ -247,10 +277,10 @@ export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
     freguesia: toTitleCase(location.freguesia),
     postalcode: asString(website.contacto_codpostal),
     footer_contact: asString(website.contacto_footer_empresa),
-    footer_image: makeFileUrl(env, website.img_footer),
+    footer_image: makeFileUrl(env, website.img_footer, agencyId, hash),
     phone: asString(website.contacto_telefone),
     mobile: asString(website.contacto_telemovel),
-    reserved_image: makeFileUrl(env, website.img_reservedimov),
+    reserved_image: makeFileUrl(env, website.img_reservedimov, agencyId, hash),
     slug: asNumber(website.property_slug) === 2,
     numb_interm_credito: website.contact_interm_credit,
     widget_reatia: asNullableString(website.widget_reatia),
@@ -294,7 +324,7 @@ export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
       sliders: asNumber(website.websiteimgsliders_count),
       bgimage:
         asNumber(website.options_website_image_home) === 0 && hasValue(website.website_image_home)
-          ? makeFileUrl(env, website.website_image_home)
+          ? makeFileUrl(env, website.website_image_home, agencyId, hash)
           : adminImageUrl(env, adminImages.home),
       section: {
         destaques: website.section_destaque,
@@ -334,60 +364,80 @@ export async function getWebsitePayloadByHash(env: Bindings, hash: string) {
     bgimagetopo: {
       about: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_quemsomos,
         websiteImage: website.website_image_quemsomos,
         adminImageName: adminImages.quemsomos
       }),
       services: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_servicos,
         websiteImage: website.website_image_servicos,
         adminImageName: adminImages.servicos
       }),
       recruits: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_recrutamento,
         websiteImage: website.website_image_recrutamento,
         adminImageName: adminImages.recrutamento
       }),
       wantsell: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_querovender,
         websiteImage: website.website_image_querovender,
         adminImageName: adminImages.querovender
       }),
       imovs: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_imoveis,
         websiteImage: website.website_image_imoveis,
         adminImageName: adminImages.imoveis
       }),
       team: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_equipa,
         websiteImage: website.website_image_equipa,
         adminImageName: adminImages.equipa
       }),
       contacts: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_contactos,
         websiteImage: website.website_image_contactos,
         adminImageName: adminImages.contactos
       }),
       empreendimentos: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_empreendimentos,
         websiteImage: website.website_image_empreendimentos,
         adminImageName: adminImages.empreendimentos
       }),
       agency: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_agency,
         websiteImage: website.website_image_agency,
         adminImageName: adminImages.agency
       }),
       blogs: resolveSectionTopImage({
         env,
+        agencyId,
+        hash,
         optionId: website.options_website_image_blogs,
         websiteImage: website.website_image_blogs,
         adminImageName: adminImages.blogs

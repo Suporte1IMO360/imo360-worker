@@ -43,6 +43,12 @@ HASHIDS_ALTERNATIVE_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
 USE_CLOUDFLARE_IMAGES=false
 CF_IMAGES_BASE_URL=https://imagedelivery.net/SEU_ACCOUNT_HASH
 CF_IMAGES_VARIANT=public
+
+# Opcional: prefixo legado para ficheiros (equivalente ao defaultpathwebsite)
+# Exemplo fixo: agencias/imagens
+# Exemplo por agencia: agencias/{agency_id}/imagens
+# Exemplo estilo Laravel User::defaultpathwebsite: users/{hash}/website
+WEBSITE_DEFAULT_PATH=
 ```
 
 ## 3. Executar localmente
@@ -93,6 +99,9 @@ Quando `USE_CLOUDFLARE_IMAGES=true`, o endpoint tenta montar URL no formato:
 `CF_IMAGES_BASE_URL/<image_id>/CF_IMAGES_VARIANT`
 
 Se o valor guardado na base nao parecer um `image_id`, o worker faz fallback para o formato legado com `URL_IMO360`.
+
+Se precisares de manter o comportamento do Laravel `defaultpathwebsite`, define `WEBSITE_DEFAULT_PATH`.
+Podes usar `{hash}` (hash da rota), `{agency_hash}`, `{user_hash}` ou `{agency_id}` no template.
 
 `API_AUTH_TOKEN` é opcional neste starter e só será usado em rotas protegidas.
 

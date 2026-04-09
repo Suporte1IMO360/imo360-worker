@@ -11,6 +11,7 @@
     "USE_CLOUDFLARE_IMAGES": "false",
     "CF_IMAGES_BASE_URL": "",
     "CF_IMAGES_VARIANT": "public",
+    "WEBSITE_DEFAULT_PATH": "",
     "HASHIDS_MIN_LENGTH": "6",
     "HASHIDS_ALPHABET": "abcdefghijklmnopqrstuvwxyz1234567890",
     "HASHIDS_ALTERNATIVE_MIN_LENGTH": "25",
