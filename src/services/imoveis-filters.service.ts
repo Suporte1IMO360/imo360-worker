@@ -1,6 +1,7 @@
 import type { Bindings } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
+  findCeRows,
   findConcelhosRowsOnlineOnly,
   findConcelhosRows,
   findDisponibilidadeRows,
@@ -279,6 +280,21 @@ export async function getZonasByHash(
   const zonaIdFilter = parseOptionalPositiveInt(options.id)
 
   const rows = await findZonaRows(env, scopeIds, byColaborador, zonaIdFilter)
+
+  return toPluckMap(rows, (row) => row.name)
+}
+
+export async function getCesByHash(
+  env: Bindings,
+  hash: string,
+  options: { type?: string; id?: string }
+): Promise<Record<string, string | null>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const byColaborador = isFilled(options.type)
+  const scopeIds = resolveScopeIds(decodedId)
+  const ceIdFilter = parseOptionalPositiveInt(options.id)
+
+  const rows = await findCeRows(env, scopeIds, byColaborador, ceIdFilter)
 
   return toPluckMap(rows, (row) => row.name)
 }

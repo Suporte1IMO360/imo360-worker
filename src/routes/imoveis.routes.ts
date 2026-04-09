@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { AppEnv } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import {
+  getCesByHash,
   getDisponibilidadesByHash,
   getEstadosByHash,
   getOtherPlacesByHash,
@@ -79,6 +80,16 @@ router.get('/zonas/:hash', async (c) => {
   const id = c.req.query('id')
 
   const payload = await getZonasByHash(c.env, hash, { type, id })
+
+  return c.json(payload)
+})
+
+router.get('/ces/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const type = c.req.query('type')
+  const id = c.req.query('id')
+
+  const payload = await getCesByHash(c.env, hash, { type, id })
 
   return c.json(payload)
 })

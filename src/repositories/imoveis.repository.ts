@@ -49,6 +49,11 @@ type ZonaRow = RowDataPacket & {
   name: string | null
 }
 
+type CeRow = RowDataPacket & {
+  id: number
+  name: string | null
+}
+
 type PlaceNameRow = RowDataPacket & {
   id: number
   name: string | null
@@ -272,6 +277,39 @@ export async function findZonaRows(
   const params = zonaIdFilter ? [...userIds, zonaIdFilter] : userIds
 
   return queryRows<ZonaRow>(env, sql, params)
+}
+
+export async function findCeRows(
+  env: Bindings,
+  userIds: number[],
+  byColaborador: boolean,
+  ceIdFilter?: number
+): Promise<CeRow[]> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const scopeColumn = byColaborador ? 'colaborador_id' : 'agencia_id'
+  const userPlaceholders = placeholders(userIds)
+  const ceFilterSql = ceIdFilter ? 'AND ce.id = ?' : ''
+
+  const sql = `
+    SELECT ce.id, ce.name
+    FROM imovces ce
+    WHERE ce.id IN (
+      SELECT DISTINCT i.imovce_id
+      FROM imovs i
+      WHERE i.${scopeColumn} IN (${userPlaceholders})
+        AND i.online = 1
+        AND i.imovce_id IS NOT NULL
+    )
+    ${ceFilterSql}
+    ORDER BY ce.name ASC
+  `
+
+  const params = ceIdFilter ? [...userIds, ceIdFilter] : userIds
+
+  return queryRows<CeRow>(env, sql, params)
 }
 
 export async function findDistritosRows(
