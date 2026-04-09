@@ -3,14 +3,14 @@ import { decodeSingleHash } from '../utils/hashid'
 import { findWebsiteAggregateByAgencyId } from '../repositories/website.repository'
 
 const WEBPAGE_IDS = {
-  ABOUTUS: 1,
-  SERVICES: 2,
-  RECRUIT: 3,
-  WANTSELL: 4,
-  TEAM: 5,
-  REALESTATEDEVELOPMENT: 6,
-  AGENCIES: 7,
-  BLOGS: 8
+  ABOUTUS: 2,
+  SERVICES: 4,
+  RECRUIT: 6,
+  WANTSELL: 7,
+  TEAM: 8,
+  REALESTATEDEVELOPMENT: 9,
+  AGENCIES: 10,
+  BLOGS: 11
 }
 
 function hasValue(value: unknown): boolean {
