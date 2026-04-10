@@ -2,24 +2,36 @@ import type { Bindings } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import { findWebsiteContactsByAgencyId } from '../repositories/website.repository'
 
-function hasText(value: string | null | undefined): boolean {
-  return Boolean(value && value.trim() !== '')
+function asNullableString(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  return String(value)
 }
 
-function formatHour(value: string | null): string {
-  if (!value) {
+function hasText(value: unknown): boolean {
+  const text = asNullableString(value)
+
+  return Boolean(text && text.trim() !== '')
+}
+
+function formatHour(value: unknown): string {
+  const text = asNullableString(value)
+
+  if (!text) {
     return ''
   }
 
-  const hhmm = value.length >= 5 ? value.slice(0, 5) : value
+  const hhmm = text.length >= 5 ? text.slice(0, 5) : text
   return `${hhmm}h`
 }
 
 function formatScheduleTime(
-  morningStart: string | null,
-  morningEnd: string | null,
-  afternoonStart: string | null,
-  afternoonEnd: string | null
+  morningStart: unknown,
+  morningEnd: unknown,
+  afternoonStart: unknown,
+  afternoonEnd: unknown
 ): string {
   const mStart = formatHour(morningStart)
   const mEnd = formatHour(morningEnd)
@@ -47,11 +59,36 @@ function formatScheduleTime(
   return out
 }
 
-function formatScheduleRange(start: string | null, end: string | null): string {
-  const startTxt = start || ''
+function normalizeWeekday(value: unknown): string {
+  if (value === null || value === undefined || value === '') {
+    return ''
+  }
 
-  if (hasText(end)) {
-    return `${startTxt} a ${end}`
+  const index = Number(value)
+
+  if (!Number.isInteger(index)) {
+    return asNullableString(value) || ''
+  }
+
+  const labels: Record<number, string> = {
+    0: 'Segunda',
+    1: 'Terca',
+    2: 'Quarta',
+    3: 'Quinta',
+    4: 'Sexta',
+    5: 'Sabado',
+    6: 'Domingo'
+  }
+
+  return labels[index] || ''
+}
+
+function formatScheduleRange(start: unknown, end: unknown): string {
+  const startTxt = normalizeWeekday(start)
+  const endTxt = normalizeWeekday(end)
+
+  if (hasText(endTxt)) {
+    return `${startTxt} a ${endTxt}`
   }
 
   return startTxt
@@ -80,13 +117,13 @@ export async function getContactsByHash(env: Bindings, hash: string) {
   const email =
     Number(website.show_contacto_email) === 1
       ? hasText(website.contacto_email)
-        ? website.contacto_email
+        ? asNullableString(website.contacto_email) || ''
         : ''
       : null
 
-  const phone = `${hasText(website.contacto_telefone) ? website.contacto_telefone : ''}${hasText(website.contacto_telemovel) ? `|${website.contacto_telemovel}` : ''}`
+  const phone = `${hasText(website.contacto_telefone) ? asNullableString(website.contacto_telefone) : ''}${hasText(website.contacto_telemovel) ? `|${asNullableString(website.contacto_telemovel)}` : ''}`
 
-  const street = `${hasText(website.contacto_morada) ? website.contacto_morada : ''}${hasText(website.contacto_codpostal) ? `, ${website.contacto_codpostal}` : ''}${hasText(website.localidade) ? website.localidade : hasText(website.contacto_concelho_name) ? `, ${website.contacto_concelho_name}` : ''}`
+  const street = `${hasText(website.contacto_morada) ? asNullableString(website.contacto_morada) : ''}${hasText(website.contacto_codpostal) ? `, ${asNullableString(website.contacto_codpostal)}` : ''}${hasText(website.localidade) ? asNullableString(website.localidade) : hasText(website.contacto_concelho_name) ? `, ${asNullableString(website.contacto_concelho_name)}` : ''}`
 
   return {
     email,
