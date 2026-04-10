@@ -87,6 +87,7 @@ export type ImovelRandomRow = RowDataPacket & {
   id: number
   agencia_id: number
   colaborador_id: number | null
+  imovdisp_id: number | null
   ref: string | null
   refinterna: string | null
   ref_secundary: string | null
@@ -546,6 +547,7 @@ export async function findImoveisRandomRows(
       i.id,
       i.agencia_id,
       i.colaborador_id,
+      i.imovdisp_id,
       i.ref,
       i.refinterna,
       i.ref_secundary,
@@ -639,6 +641,7 @@ export async function findImoveisVirtualTourRows(
       i.id,
       i.agencia_id,
       i.colaborador_id,
+      i.imovdisp_id,
       i.ref,
       i.refinterna,
       i.ref_secundary,
@@ -732,6 +735,7 @@ export async function findImoveisExclusiveRows(
       i.id,
       i.agencia_id,
       i.colaborador_id,
+      i.imovdisp_id,
       i.ref,
       i.refinterna,
       i.ref_secundary,
@@ -853,6 +857,7 @@ export async function findImoveisSimilarRows(
       i.id,
       i.agencia_id,
       i.colaborador_id,
+      i.imovdisp_id,
       i.ref,
       i.refinterna,
       i.ref_secundary,

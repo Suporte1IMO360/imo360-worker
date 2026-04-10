@@ -18,7 +18,7 @@ type ImovelRandomPayload = {
   external_id: string
   slug: string | null
   reference: string | null
-  imovids_id: number
+  imovdisp_id: number | null
   negocio: string
   disponibilidade: string
   title1: string
@@ -361,7 +361,7 @@ function mapRowsToPayload(
       external_id: encodeId(env, row.id),
       slug: row.slug,
       reference: resolveReference(row, typeReference),
-      imovids_id: row.id,
+      imovdisp_id: row.imovdisp_id,
       negocio: natureza,
       disponibilidade,
       title1: title,
