@@ -1078,3 +1078,40 @@ export async function findEmpreendimentosDistritosByAgencyIds(
     agencyIds
   )
 }
+
+export async function findEmpreendimentosConcelhosByAgencyIds(
+  env: Bindings,
+  agencyIds: number[],
+  distritoId?: number
+): Promise<EmpreendimentoDistritoRow[]> {
+  if (agencyIds.length === 0) {
+    return []
+  }
+
+  const scopeSql = placeholders(agencyIds)
+  const params: QueryParams = [...agencyIds]
+  let distritoSql = ''
+
+  if (distritoId) {
+    distritoSql = 'AND e.distrito_id = ?'
+    params.push(distritoId)
+  }
+
+  return queryRows<EmpreendimentoDistritoRow>(
+    env,
+    `
+      SELECT c.id, c.name
+      FROM concelhos c
+      WHERE c.id IN (
+        SELECT e.concelho_id
+        FROM empreendimentos e
+        WHERE e.agencia_id IN (${scopeSql})
+          AND e.online = 1
+          AND e.concelho_id IS NOT NULL
+          ${distritoSql}
+      )
+      ORDER BY c.name ASC, c.id ASC
+    `,
+    params
+  )
+}

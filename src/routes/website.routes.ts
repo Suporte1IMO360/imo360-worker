@@ -15,6 +15,7 @@ import {
 import { getImoveisByConsultantHash } from '../services/imoveis-random.service'
 import {
   getEmpreendimentosByHash,
+  getEmpreendimentosConcelhosByHash,
   getEmpreendimentosDistritosByHash
 } from '../services/empreendimentos.service'
 
@@ -166,6 +167,15 @@ router.get('/empreendimentos/:hash/distritos', async (c) => {
   const hash = c.req.param('hash')
 
   const payload = await getEmpreendimentosDistritosByHash(c.env, hash)
+
+  return c.json(payload)
+})
+
+router.get('/empreendimentos/:hash/concelhos', async (c) => {
+  const hash = c.req.param('hash')
+  const url = new URL(c.req.url)
+
+  const payload = await getEmpreendimentosConcelhosByHash(c.env, hash, url.searchParams)
 
   return c.json(payload)
 })

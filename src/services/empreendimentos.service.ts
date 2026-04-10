@@ -1,6 +1,7 @@
 import type { Bindings } from '../types/env'
 import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
+  findEmpreendimentosConcelhosByAgencyIds,
   findEmpreendimentosDistritosByAgencyIds,
   searchEmpreendimentosRows,
   type EmpreendimentoSearchRow
@@ -94,13 +95,9 @@ function titleCase(value: string | null): string {
     return ''
   }
 
-  const lower = value.toLocaleLowerCase('pt-PT')
-
-  if (!lower) {
-    return ''
-  }
-
-  return lower.charAt(0).toLocaleUpperCase('pt-PT') + lower.slice(1)
+  return value
+    .toLocaleLowerCase('pt-PT')
+    .replace(/(^|\s)\p{L}/gu, (match) => match.toLocaleUpperCase('pt-PT'))
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
@@ -237,6 +234,25 @@ export async function getEmpreendimentosDistritosByHash(
   return rows.reduce<Record<string, string>>((acc, row) => {
     if (row.name !== null && row.name !== undefined) {
       acc[String(row.id)] = row.name
+    }
+
+    return acc
+  }, {})
+}
+
+export async function getEmpreendimentosConcelhosByHash(
+  env: Bindings,
+  hash: string,
+  searchParams: URLSearchParams
+): Promise<Record<string, string>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const scopeIds = resolveScopeIds(decodedId)
+  const distritoId = parsePositiveInt(searchParams.get('distrito_id'))
+  const rows = await findEmpreendimentosConcelhosByAgencyIds(env, scopeIds, distritoId)
+
+  return rows.reduce<Record<string, string>>((acc, row) => {
+    if (row.name !== null && row.name !== undefined) {
+      acc[String(row.id)] = titleCase(row.name)
     }
 
     return acc
