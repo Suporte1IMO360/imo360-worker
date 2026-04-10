@@ -3,6 +3,7 @@ import { encodeId, decodeSingleHash } from '../utils/hashid'
 import {
   findImoveisExclusiveRows,
   findImoveisRandomRows,
+  findImoveisSimilarRows,
   findImoveisVirtualTourRows,
   findUserReferencePreferenceByAgencyId,
   type ImovelRandomRow
@@ -409,6 +410,57 @@ export async function getImoveisExclusiveByHash(
   const decodedId = decodeSingleHash(env, hash)
   const scopeIds = resolveScopeIds(decodedId)
   const rows = await findImoveisExclusiveRows(env, scopeIds)
+
+  return mapRowsToPayload(env, rows, lang, decodedId)
+}
+
+function parseOptionalPositiveInt(value: string | undefined): number | undefined {
+  if (!value) {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+
+  if (!/^\d+$/.test(trimmed)) {
+    return undefined
+  }
+
+  return Number.parseInt(trimmed, 10)
+}
+
+function decodeOptionalImovHash(env: Bindings, hash: string | undefined): number | undefined {
+  if (!hash) {
+    return undefined
+  }
+
+  try {
+    return decodeSingleHash(env, hash)
+  } catch {
+    return undefined
+  }
+}
+
+export async function getImoveisSimilarByHash(
+  env: Bindings,
+  hash: string,
+  options: {
+    lang?: string
+    imov_id?: string
+    imovsubnature_id?: string
+    distrito_id?: string
+    concelho_id?: string
+  }
+): Promise<ImovelRandomPayload[]> {
+  const lang = normalizeLang(options.lang)
+  const decodedId = decodeSingleHash(env, hash)
+  const scopeIds = resolveScopeIds(decodedId)
+
+  const rows = await findImoveisSimilarRows(env, scopeIds, {
+    excludeImovId: decodeOptionalImovHash(env, options.imov_id),
+    imovsubnatureId: parseOptionalPositiveInt(options.imovsubnature_id),
+    distritoId: parseOptionalPositiveInt(options.distrito_id),
+    concelhoId: parseOptionalPositiveInt(options.concelho_id)
+  })
 
   return mapRowsToPayload(env, rows, lang, decodedId)
 }

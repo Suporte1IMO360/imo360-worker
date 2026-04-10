@@ -151,6 +151,7 @@ git push -u origin main
 - `GET /api/imoveisrandom/:hash?lang=pt|en|es|fr|de`
 - `GET /api/imoveis/:hash/virtualtour?lang=pt|en|es|fr|de`
 - `GET /api/imoveis/:hash/exclusive?lang=pt|en|es|fr|de`
+- `GET /api/imoveis/:hash/similar?lang=pt|en|es|fr|de[&imov_id=<hash>][&imovsubnature_id=<id>][&distrito_id=<id>][&concelho_id=<id>]`
 - `GET /api/imoveis/:hash`
 - `GET /api/preview/:hash`
 

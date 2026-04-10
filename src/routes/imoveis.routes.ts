@@ -19,6 +19,7 @@ import {
 import {
   getImoveisExclusiveByHash,
   getImoveisRandomByHash,
+  getImoveisSimilarByHash,
   getImoveisVirtualTourByHash
 } from '../services/imoveis-random.service'
 
@@ -186,6 +187,20 @@ router.get('/imoveis/:hash/exclusive', async (c) => {
   const lang = c.req.query('lang')
 
   const payload = await getImoveisExclusiveByHash(c.env, hash, lang)
+
+  return c.json(payload)
+})
+
+router.get('/imoveis/:hash/similar', async (c) => {
+  const hash = c.req.param('hash')
+
+  const payload = await getImoveisSimilarByHash(c.env, hash, {
+    lang: c.req.query('lang'),
+    imov_id: c.req.query('imov_id'),
+    imovsubnature_id: c.req.query('imovsubnature_id'),
+    distrito_id: c.req.query('distrito_id'),
+    concelho_id: c.req.query('concelho_id')
+  })
 
   return c.json(payload)
 })
