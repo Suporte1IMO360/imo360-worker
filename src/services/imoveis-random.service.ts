@@ -10,7 +10,7 @@ import {
   findUserReferencePreferenceByAgencyId,
   type ImovelRandomRow
 } from '../repositories/imoveis.repository'
-import { resolveWebsiteFileUrl } from './website.service'
+import { resolveImovelFileUrl, resolveWebsiteFileUrl } from './website.service'
 
 type SupportedLang = 'pt' | 'en' | 'es' | 'fr' | 'de'
 
@@ -321,6 +321,7 @@ function mapRowsToPayload(
   const typeReference = await findUserReferencePreferenceByAgencyId(env, decodedId)
 
   return rows.map((row) => {
+    const imovHash = encodeId(env, row.id)
     const agencyHash = encodeId(env, row.agencia_id)
     const title = resolveTitle(row, lang)
     const hideConsultantInfo = toBool(row.ocultarDadosConsultor)
@@ -334,7 +335,7 @@ function mapRowsToPayload(
     const images = parseImages(row.images)
     const imageFile = resolveImageFile(images)
     const imageUrl = imageFile
-      ? resolveWebsiteFileUrl(env, imageFile, row.agencia_id, agencyHash)
+      ? resolveImovelFileUrl(env, imageFile, row.agencia_id, imovHash, 'foto_marca_agua')
       : `${env.URL_IMO360.replace(/\/+$/, '')}/assets/images/nophoto.jpg`
 
     const natureza = lowerText(row.imovnature_name)
@@ -694,6 +695,7 @@ function mapSearchRowToPayload(
   apiOrigin: string
 ): ImoveisSearchPayload {
   const agencyHash = encodeId(env, row.agencia_id)
+  const imovHash = encodeId(env, row.id)
   const title = resolveTitle(row, lang)
   const hideConsultantInfo = toBool(row.ocultarDadosConsultor)
   const consultantId = hideConsultantInfo ? row.agencia_id : (row.colaborador_id ?? row.agencia_id)
@@ -706,7 +708,7 @@ function mapSearchRowToPayload(
   const images = parseImages(row.images)
   const imageFile = resolveImageFile(images)
   const imageUrl = imageFile
-    ? resolveWebsiteFileUrl(env, imageFile, row.agencia_id, agencyHash)
+    ? resolveImovelFileUrl(env, imageFile, row.agencia_id, imovHash, 'foto_marca_agua')
     : `${env.URL_IMO360.replace(/\/+$/, '')}/assets/images/nophoto.jpg`
 
   const naturezaLabel = langValue(lang, {

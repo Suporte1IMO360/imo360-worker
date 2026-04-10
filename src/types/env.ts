@@ -6,6 +6,7 @@ export type Bindings = {
   CF_IMAGES_BASE_URL?: string
   CF_IMAGES_VARIANT?: string
   WEBSITE_DEFAULT_PATH?: string
+  IMOVEL_DEFAULT_PATH?: string
   HASHIDS_SALT: string
   HASHIDS_MIN_LENGTH: string
   HASHIDS_ALPHABET: string

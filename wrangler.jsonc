@@ -12,6 +12,7 @@
     "CF_IMAGES_BASE_URL": "https://images.crm360.pt",
     "CF_IMAGES_VARIANT": "public",
     "WEBSITE_DEFAULT_PATH": "users/{hash}/website",
+    "IMOVEL_DEFAULT_PATH": "imoveis/{hash}/{type}",
     "HASHIDS_MIN_LENGTH": "6",
     "HASHIDS_ALPHABET": "abcdefghijklmnopqrstuvwxyz1234567890",
     "HASHIDS_ALTERNATIVE_MIN_LENGTH": "25",

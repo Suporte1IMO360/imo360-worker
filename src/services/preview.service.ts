@@ -14,7 +14,7 @@ import {
   type PreviewDivisionRow,
   type PreviewMainRow
 } from '../repositories/preview.repository'
-import { resolveWebsiteFileUrl } from './website.service'
+import { resolveImovelFileUrl, resolveWebsiteFileUrl } from './website.service'
 
 type SupportedLang = 'pt' | 'en' | 'es' | 'fr' | 'de'
 
@@ -269,12 +269,15 @@ export async function getPreviewByHash(
   const images = parseImages(row.images)
   const firstImageFile = resolveFirstImage(images)
   const agencyHash = encodeId(env, row.agencia_id)
+  const imovHash = encodeId(env, row.id)
 
   const image = firstImageFile
-    ? resolveWebsiteFileUrl(env, firstImageFile, row.agencia_id, agencyHash)
+    ? resolveImovelFileUrl(env, firstImageFile, row.agencia_id, imovHash, 'foto_marca_agua')
     : `${env.URL_IMO360.replace(/\/+$/, '')}/assets/images/nophoto.jpg`
 
-  const thumbnail = image
+  const thumbnail = firstImageFile
+    ? resolveImovelFileUrl(env, firstImageFile, row.agencia_id, imovHash, 'tn')
+    : `${env.URL_IMO360.replace(/\/+$/, '')}/assets/images/nophoto.jpg`
   const hideConsultantInfo = toBool(row.ocultarDadosConsultor)
   const consultantId = row.colaborador_id ?? row.agencia_id
 
@@ -414,12 +417,15 @@ export async function getPreviewBySlug(
   const images = parseImages(row.images)
   const firstImageFile = resolveFirstImage(images)
   const agencyHash = encodeId(env, row.agencia_id)
+  const imovHash = encodeId(env, row.id)
 
   const image = firstImageFile
-    ? resolveWebsiteFileUrl(env, firstImageFile, row.agencia_id, agencyHash)
+    ? resolveImovelFileUrl(env, firstImageFile, row.agencia_id, imovHash, 'foto_marca_agua')
     : `${env.URL_IMO360.replace(/\/+$/, '')}/assets/images/nophoto.jpg`
 
-  const thumbnail = image
+  const thumbnail = firstImageFile
+    ? resolveImovelFileUrl(env, firstImageFile, row.agencia_id, imovHash, 'tn')
+    : `${env.URL_IMO360.replace(/\/+$/, '')}/assets/images/nophoto.jpg`
   const hideConsultantInfo = toBool(row.ocultarDadosConsultor)
   const consultantId = row.colaborador_id ?? row.agencia_id
 
@@ -553,7 +559,7 @@ export async function getPreviewImagesByHash(env: Bindings, hash: string): Promi
 
   return images
     .filter((item) => Number(item.online) === 1)
-    .map((item) => resolveWebsiteFileUrl(env, item.file, row.agencia_id, agencyHash))
+    .map((item) => resolveImovelFileUrl(env, item.file, row.agencia_id, hash, 'foto_marca_agua'))
     .filter((item): item is string => Boolean(item))
 }
 

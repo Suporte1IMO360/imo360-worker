@@ -116,6 +116,24 @@ function resolveLegacyPathPrefix(env: Bindings, agencyId: number, hash: string):
   )
 }
 
+function resolveImovelPathPrefix(
+  env: Bindings,
+  agencyId: number,
+  hash: string,
+  type: string
+): string {
+  const template = env.IMOVEL_DEFAULT_PATH || 'imoveis/{hash}/{type}'
+
+  return normalizePath(
+    template
+      .replace(/\{agency_id\}/gi, String(agencyId))
+      .replace(/\{hash\}/gi, hash)
+      .replace(/\{agency_hash\}/gi, hash)
+      .replace(/\{user_hash\}/gi, hash)
+      .replace(/\{type\}/gi, type)
+  )
+}
+
 function resolveAssetUrl(env: Bindings, value: unknown, agencyId: number, hash: string): string | null {
   const raw = asNullableString(value)
 
@@ -164,6 +182,38 @@ export function resolveWebsiteFileUrl(
   hash: string
 ): string | null {
   return makeFileUrl(env, value, agencyId, hash)
+}
+
+export function resolveImovelFileUrl(
+  env: Bindings,
+  filename: unknown,
+  agencyId: number,
+  hash: string,
+  type: string
+): string | null {
+  const raw = asNullableString(filename)
+
+  if (!raw) {
+    return null
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    return raw
+  }
+
+  const normalizedFile = raw.replace(/^\/+/, '')
+  const prefix = resolveImovelPathPrefix(env, agencyId, hash, type)
+  const fullPath = `${prefix}/${normalizedFile}`
+
+  if (asBooleanString(env.USE_CLOUDFLARE_IMAGES)) {
+    const cloudflareUrl = cloudflarePathUrl(env, fullPath)
+
+    if (cloudflareUrl) {
+      return cloudflareUrl
+    }
+  }
+
+  return `${normalizeBaseUrl(env.URL_IMO360)}/${fullPath}`
 }
 
 function adminImageUrl(env: Bindings, filename: unknown): string | null {
