@@ -531,6 +531,10 @@ export async function getPreviewImagesByHash(env: Bindings, hash: string): Promi
     return []
   }
 
+  if (!row.images) {
+    return [`${env.URL_IMO360.replace(/\/+$/, '')}/assets/images/nophoto141x94.png`]
+  }
+
   const agencyHash = encodeId(env, row.agencia_id)
   const images = parseImages(row.images)
 

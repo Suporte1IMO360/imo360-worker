@@ -230,6 +230,11 @@ router.get('/property/preview/:slug', async (c) => {
 
 router.get('/preview/:hash/images', async (c) => {
   const hash = c.req.param('hash')
+
+  if (hash === 'undefined') {
+    return c.body(null, 200)
+  }
+
   const payload = await getPreviewImagesByHash(c.env, hash)
 
   return c.json(payload)
