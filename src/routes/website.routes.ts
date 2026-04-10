@@ -1,10 +1,10 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types/env'
-import { decodeSingleHash } from '../utils/hashid'
 import { getWebsitePayloadByHash } from '../services/website.service'
 import { getHomepageBlocksByHash } from '../services/homepage-blocks.service'
 import { getAboutByHash } from '../services/about.service'
 import { getServicesByHash } from '../services/services.service'
+import { getContactsByHash } from '../services/contacts.service'
 
 const router = new Hono<AppEnv>()
 
@@ -77,14 +77,10 @@ router.get('/website/:hash', async (c) => {
 
 router.get('/contacts/:hash', async (c) => {
   const hash = c.req.param('hash')
-  const id = decodeSingleHash(c.env, hash)
 
-  return c.json({
-    endpoint: 'contacts',
-    hash,
-    decoded_id: id,
-    status: 'ok'
-  })
+  const payload = await getContactsByHash(c.env, hash)
+
+  return c.json(payload)
 })
 
 export default router

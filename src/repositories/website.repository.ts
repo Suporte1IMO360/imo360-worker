@@ -132,6 +132,34 @@ export type WebsiteServiceRow = RowDataPacket & {
   description: string | null
 }
 
+export type WebsiteContactsRow = RowDataPacket & {
+  id: number
+  agencia_id: number
+  contacto_telemovel: string | null
+  contacto_telefone: string | null
+  show_contacto_email: number | null
+  contacto_email: string | null
+  latitude: string | null
+  longitude: string | null
+  contacto_morada: string | null
+  contacto_concelho: number | null
+  contacto_codpostal: string | null
+  localidade: string | null
+  contacto_horario: string | null
+  contacto_horario2: string | null
+  contacto_horario3: string | null
+  contacto_horario4: string | null
+  contacto_manha_inicio: string | null
+  contacto_manha_inicio2: string | null
+  contacto_manha_fim: string | null
+  contacto_manha_fim2: string | null
+  contacto_tarde_inicio: string | null
+  contacto_tarde_inicio2: string | null
+  contacto_tarde_fim: string | null
+  contacto_tarde_fim2: string | null
+  contacto_concelho_name: string | null
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -481,5 +509,46 @@ export async function findWebsiteServicesByAgencyIdAndLang(
       ORDER BY ws.id ASC
     `,
     [agencyId, lang]
+  )
+}
+
+export async function findWebsiteContactsByAgencyId(
+  env: Bindings,
+  agencyId: number
+): Promise<WebsiteContactsRow | null> {
+  return querySingleRow<WebsiteContactsRow>(
+    env,
+    `
+      SELECT
+        w.id,
+        w.agencia_id,
+        w.contacto_telemovel,
+        w.contacto_telefone,
+        w.show_contacto_email,
+        w.contacto_email,
+        w.latitude,
+        w.longitude,
+        w.contacto_morada,
+        w.contacto_concelho,
+        w.contacto_codpostal,
+        w.localidade,
+        w.contacto_horario,
+        w.contacto_horario2,
+        w.contacto_horario3,
+        w.contacto_horario4,
+        w.contacto_manha_inicio,
+        w.contacto_manha_inicio2,
+        w.contacto_manha_fim,
+        w.contacto_manha_fim2,
+        w.contacto_tarde_inicio,
+        w.contacto_tarde_inicio2,
+        w.contacto_tarde_fim,
+        w.contacto_tarde_fim2,
+        (SELECT c.name FROM concelhos c WHERE c.id = w.contacto_concelho LIMIT 1) AS contacto_concelho_name
+      FROM websites w
+      WHERE w.agencia_id = ?
+      LIMIT 1
+    `,
+    [agencyId]
   )
 }
