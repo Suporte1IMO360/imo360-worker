@@ -5,6 +5,7 @@ import { getHomepageBlocksByHash } from '../services/homepage-blocks.service'
 import { getAboutByHash } from '../services/about.service'
 import { getServicesByHash } from '../services/services.service'
 import { getContactsByHash } from '../services/contacts.service'
+import { getCustomModalByHash } from '../services/custom-modal.service'
 
 const router = new Hono<AppEnv>()
 
@@ -79,6 +80,15 @@ router.get('/contacts/:hash', async (c) => {
   const hash = c.req.param('hash')
 
   const payload = await getContactsByHash(c.env, hash)
+
+  return c.json(payload)
+})
+
+router.get('/custom/modal/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const lang = c.req.query('lang')
+
+  const payload = await getCustomModalByHash(c.env, hash, lang)
 
   return c.json(payload)
 })

@@ -160,6 +160,14 @@ export type WebsiteContactsRow = RowDataPacket & {
   contacto_concelho_name: string | null
 }
 
+export type WebsiteCustomModalRow = RowDataPacket & {
+  title: string | null
+  description: string | null
+  image: string | null
+  text_button: string | null
+  url: string | null
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -550,5 +558,29 @@ export async function findWebsiteContactsByAgencyId(
       LIMIT 1
     `,
     [agencyId]
+  )
+}
+
+export async function findWebsiteCustomModalByAgencyIdAndLang(
+  env: Bindings,
+  agencyId: number,
+  lang: 'pt' | 'en' | 'es' | 'fr' | 'de'
+): Promise<WebsiteCustomModalRow | null> {
+  return querySingleRow<WebsiteCustomModalRow>(
+    env,
+    `
+      SELECT
+        m.title,
+        m.description,
+        m.image,
+        m.text_button,
+        m.url
+      FROM websites w
+      INNER JOIN website_custom_modals m ON m.website_id = w.id
+      WHERE w.agencia_id = ?
+        AND m.language = ?
+      LIMIT 1
+    `,
+    [agencyId, lang]
   )
 }
