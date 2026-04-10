@@ -832,3 +832,67 @@ export async function getImoveisByHash(
 
   return buildPaginator(requestUrl, searchParams, page, perPage, total, payload)
 }
+
+export async function getImoveisByConsultantHash(
+  env: Bindings,
+  hash: string,
+  searchParams: URLSearchParams,
+  requestUrl: URL
+): Promise<ImoveisSearchPaginated> {
+  const lang = normalizeLang(searchParams.get('lang') || undefined)
+  const decodedConsultantId = decodeSingleHash(env, hash)
+  const place = parsePlace(searchParams)
+
+  const page = parsePositiveInt(searchParams.get('page')) ?? 1
+  const perPage = 9
+  const sort = parseSort(searchParams)
+
+  const agenciaHash = searchParams.get('agencias_id')
+  const agenciasId = agenciaHash ? decodeOptionalImovHash(env, agenciaHash) : undefined
+
+  const { rows, total } = await searchImoveisRows(env, {
+    scopeIds: [decodedConsultantId],
+    scopeByColaborador: true,
+    placeField: place?.field,
+    placeId: place?.id,
+    distritoId: parsePositiveInt(searchParams.get('distrito_id')),
+    concelhoId: parsePositiveInt(searchParams.get('concelho_id')),
+    freguesiaId: parsePositiveInt(searchParams.get('freguesia_id')),
+    reference: searchParams.get('reference') || undefined,
+    imovnatureIds: readNumberArray(searchParams, 'imovnature_id'),
+    agenciasId,
+    imovtnIds: readNumberArray(searchParams, 'imovtn_id'),
+    imovceId: parsePositiveInt(searchParams.get('imovce_id')),
+    imovestId: parsePositiveInt(searchParams.get('imovest_id')),
+    zonaId: parsePositiveInt(searchParams.get('zona_id')),
+    imovdispId: parsePositiveInt(searchParams.get('imovdisp_id')),
+    precoMin: parseNumberValue(searchParams.get('precomin')),
+    precoMax: parseNumberValue(searchParams.get('precomax')),
+    baixapreco: hasFilledParam(searchParams, 'baixapreco'),
+    imovelBanca: hasFilledParam(searchParams, 'imovelbanca'),
+    exclusivo: hasFilledParam(searchParams, 'exclusivo'),
+    negociavel: hasFilledParam(searchParams, 'negociavel'),
+    permuta: hasFilledParam(searchParams, 'permuta'),
+    destaque: hasFilledParam(searchParams, 'destaque'),
+    novidade: hasFilledParam(searchParams, 'novidade'),
+    virtual: hasFilledParam(searchParams, 'virtual'),
+    rooms: readNumberArray(searchParams, 'rooms'),
+    minroom: parsePositiveInt(searchParams.get('minroom')),
+    maxroom: parsePositiveInt(searchParams.get('maxroom')),
+    areaMin: parseNumberValue(searchParams.get('areamin')),
+    areaMax: parseNumberValue(searchParams.get('areamax')),
+    equipamentos: readNumberArray(searchParams, 'equipamentos'),
+    infraestruturas: readNumberArray(searchParams, 'infraestruturas'),
+    zonaenvolventes: readNumberArray(searchParams, 'zonaenvolventes'),
+    sort,
+    page,
+    perPage
+  })
+
+  const typeReference = rows[0]?.agencia_id
+    ? await findUserReferencePreferenceByAgencyId(env, rows[0].agencia_id)
+    : null
+  const payload = rows.map((row) => mapSearchRowToPayload(env, row, lang, typeReference, requestUrl.origin))
+
+  return buildPaginator(requestUrl, searchParams, page, perPage, total, payload)
+}

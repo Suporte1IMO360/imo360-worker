@@ -1064,6 +1064,7 @@ type ImoveisSearchCountRow = RowDataPacket & {
 
 export type ImoveisSearchFilters = {
   scopeIds: number[]
+  scopeByColaborador?: boolean
   placeField?: 'distrito' | 'concelho' | 'freguesia'
   placeId?: number
   distritoId?: number
@@ -1110,10 +1111,11 @@ export async function searchImoveisRows(
   }
 
   const userPlaceholders = placeholders(filters.scopeIds)
+  const scopeColumn = filters.scopeByColaborador ? 'i.colaborador_id' : 'i.agencia_id'
   const params: QueryParams = [...filters.scopeIds]
   const joins: string[] = []
   const where: string[] = [
-    `i.agencia_id IN (${userPlaceholders})`,
+    `${scopeColumn} IN (${userPlaceholders})`,
     'i.online = 1',
     'i.deleted_at IS NULL',
     'i.colaborador_id IS NOT NULL'

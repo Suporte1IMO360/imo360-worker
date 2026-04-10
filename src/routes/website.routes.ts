@@ -12,6 +12,7 @@ import {
   getTeamConsultantByHashes,
   getTeamHomepageByHash
 } from '../services/team.service'
+import { getImoveisByConsultantHash } from '../services/imoveis-random.service'
 
 const router = new Hono<AppEnv>()
 
@@ -135,6 +136,15 @@ router.get('/team/:agency/consultant/:hash', async (c) => {
   if (!payload) {
     return c.json({ ok: false, error: 'not_found', message: 'Consultor nao encontrado.' }, 404)
   }
+
+  return c.json(payload)
+})
+
+router.get('/team/consultant/:hash/imovs', async (c) => {
+  const hash = c.req.param('hash')
+  const url = new URL(c.req.url)
+
+  const payload = await getImoveisByConsultantHash(c.env, hash, url.searchParams, url)
 
   return c.json(payload)
 })
