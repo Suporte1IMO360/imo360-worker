@@ -245,6 +245,11 @@ type EmpreendimentoSearchCountRow = RowDataPacket & {
   total: number
 }
 
+export type EmpreendimentoDistritoRow = RowDataPacket & {
+  id: number
+  name: string | null
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -1044,4 +1049,32 @@ export async function searchEmpreendimentosRows(
   const rows = await queryRows<EmpreendimentoSearchRow>(env, dataSql, [...params, safePerPage, offset])
 
   return { rows, total }
+}
+
+export async function findEmpreendimentosDistritosByAgencyIds(
+  env: Bindings,
+  agencyIds: number[]
+): Promise<EmpreendimentoDistritoRow[]> {
+  if (agencyIds.length === 0) {
+    return []
+  }
+
+  const scopeSql = placeholders(agencyIds)
+
+  return queryRows<EmpreendimentoDistritoRow>(
+    env,
+    `
+      SELECT d.id, d.name
+      FROM distritos d
+      WHERE d.id IN (
+        SELECT e.distrito_id
+        FROM empreendimentos e
+        WHERE e.agencia_id IN (${scopeSql})
+          AND e.online = 1
+          AND e.distrito_id IS NOT NULL
+      )
+      ORDER BY d.name ASC, d.id ASC
+    `,
+    agencyIds
+  )
 }

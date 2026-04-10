@@ -1,6 +1,7 @@
 import type { Bindings } from '../types/env'
 import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
+  findEmpreendimentosDistritosByAgencyIds,
   searchEmpreendimentosRows,
   type EmpreendimentoSearchRow
 } from '../repositories/website.repository'
@@ -223,4 +224,21 @@ export async function getEmpreendimentosByHash(
   const payload = rows.map((row) => mapRowToPayload(env, row, lang))
 
   return buildPaginator(requestUrl, searchParams, page, EMPREENDIMENTOS_PER_PAGE, total, payload)
+}
+
+export async function getEmpreendimentosDistritosByHash(
+  env: Bindings,
+  hash: string
+): Promise<Record<string, string>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const scopeIds = resolveScopeIds(decodedId)
+  const rows = await findEmpreendimentosDistritosByAgencyIds(env, scopeIds)
+
+  return rows.reduce<Record<string, string>>((acc, row) => {
+    if (row.name !== null && row.name !== undefined) {
+      acc[String(row.id)] = row.name
+    }
+
+    return acc
+  }, {})
 }
