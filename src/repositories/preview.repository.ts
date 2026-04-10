@@ -101,6 +101,10 @@ type CountRow = RowDataPacket & {
   total: number
 }
 
+type PreviewIdRow = RowDataPacket & {
+  id: number
+}
+
 async function queryRows<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -239,6 +243,28 @@ export async function findPreviewMainByImovId(
 
   const rows = await queryRows<PreviewMainRow>(env, sql, [imovId])
   return rows[0] ?? null
+}
+
+export async function findPreviewMainBySlug(
+  env: Bindings,
+  slug: string
+): Promise<PreviewMainRow | null> {
+  const sql = `
+    SELECT i.id
+    FROM imovs i
+    WHERE i.slug = ?
+      AND i.deleted_at IS NULL
+    LIMIT 1
+  `
+
+  const rows = await queryRows<PreviewIdRow>(env, sql, [slug])
+  const imovId = rows[0]?.id
+
+  if (!imovId) {
+    return null
+  }
+
+  return findPreviewMainByImovId(env, imovId)
 }
 
 export async function findPreviewTranslation(

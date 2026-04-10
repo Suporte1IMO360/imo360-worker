@@ -5,6 +5,7 @@ import {
   findPreviewDivisions,
   findPreviewFeatureLabels,
   findPreviewMainByImovId,
+  findPreviewMainBySlug,
   findPreviewTranslation,
   incrementPreviewVisit,
   type PreviewDivisionRow,
@@ -238,6 +239,151 @@ export async function getPreviewByHash(
   const lang = normalizeLang(url.searchParams.get('lang') || undefined)
 
   const row = await findPreviewMainByImovId(env, imovId)
+
+  if (!row) {
+    return null
+  }
+
+  await incrementPreviewVisit(env, row.id)
+
+  const translation = await findPreviewTranslation(env, row.id, lang)
+  const title = lang === 'pt' ? asString(row.titulo_publicacao) : asString(translation?.title || row.titulo_publicacao)
+  const descriptionSource =
+    lang === 'pt' ? asNullableString(row.info_descricao) : asNullableString(translation?.description || row.info_descricao)
+
+  const images = parseImages(row.images)
+  const firstImageFile = resolveFirstImage(images)
+  const agencyHash = encodeId(env, row.agencia_id)
+
+  const image = firstImageFile
+    ? resolveWebsiteFileUrl(env, firstImageFile, row.agencia_id, agencyHash)
+    : `${env.URL_IMO360.replace(/\/+$/, '')}/assets/images/nophoto.jpg`
+
+  const thumbnail = image
+  const hideConsultantInfo = toBool(row.ocultarDadosConsultor)
+  const consultantId = row.colaborador_id ?? row.agencia_id
+
+  const divisoes = mapDivisions(await findPreviewDivisions(env, row.id))
+
+  const [equipamentos, infraestruturas, servicos, segurancas, zonaenvolventes, virtualstaging] =
+    await Promise.all([
+      findPreviewFeatureLabels(env, row.id, 'equipamentos', lang),
+      findPreviewFeatureLabels(env, row.id, 'infraestruturas', lang),
+      findPreviewFeatureLabels(env, row.id, 'servicos', lang),
+      findPreviewFeatureLabels(env, row.id, 'segurancas', lang),
+      findPreviewFeatureLabels(env, row.id, 'zonaenvolventes', lang),
+      countPreviewVirtualStaging(env, row.id)
+    ])
+
+  const title2 = buildImovTitle(row, lang)
+
+  return {
+    external: encodeId(env, row.id),
+    reference: resolveReference(row),
+    imovnature_id: row.imovnature_id,
+    propertytype: row.imovsubnature_id,
+    natureza: langValue(lang, {
+      pt: row.imovsubnature_pt,
+      en: row.imovsubnature_en,
+      es: row.imovsubnature_es,
+      fr: row.imovsubnature_fr,
+      de: row.imovsubnature_de
+    }),
+    negocio: langValue(lang, {
+      pt: row.imovtn_pt,
+      en: row.imovtn_en,
+      es: row.imovtn_es,
+      fr: row.imovtn_fr,
+      de: row.imovtn_de
+    }),
+    estado: langValue(lang, {
+      pt: row.imovest_pt,
+      en: row.imovest_en,
+      es: row.imovest_es,
+      fr: row.imovest_fr,
+      de: row.imovest_de
+    }),
+    imovdisp_id: row.imovdisp_id,
+    imovtn_id: row.imovtn_id,
+    disponibilidade: langValue(lang, {
+      pt: row.imovdisp_pt,
+      en: row.imovdisp_en,
+      es: row.imovdisp_es,
+      fr: row.imovdisp_fr,
+      de: row.imovdisp_de
+    }),
+    title1: Number(row.property_title) === 1 ? title : title2,
+    title2,
+    price: asNumber(row.valor),
+    banner_reserva: toBool(row.reserva_online),
+    valorreservadireta: row.valor_reserva,
+    area_util: formatArea(row.area_util_det),
+    area_bruta_privativa: formatArea(row.area_bruta_det),
+    area_terreno: formatArea(row.area_terreno_det),
+    rooms: normalizeRooms(row.quartos),
+    garage: normalizeGarage(row.garagens),
+    wc: normalizeWc(row.wcs),
+    year: resolveYear(row.inic_construcao),
+    description: resolveDescription(descriptionSource),
+    destaque: toBool(row.destacar),
+    novidade: toBool(row.novidade),
+    baixapreco: toBool(row.baixapreco),
+    exclusivo: toBool(row.exclusivo),
+    distrito_id: row.distrito_id,
+    distrito: asString(row.distrito_name),
+    concelho_id: row.concelho_id,
+    concelho: titleCase(asString(row.concelho_name)),
+    freguesia_id: row.freguesia_id,
+    freguesia: titleCase(asString(row.freguesia_name)),
+    latitude: row.coordenada_lat,
+    longitude: row.coordenada_lon,
+    sob_consulta: row.valor_site,
+    checkvideo: toBool(row.publicar_video) && Boolean(asNullableString(row.video)),
+    video: resolveVideo(row),
+    checkvirtualtour: (asNullableString(row.link_3D) || '').startsWith('https://')
+      ? row.link_3D
+      : '',
+    virtualtour: row.link_3D,
+    energy_certification: resolveEnergyCertification(row),
+    consultant_external: encodeId(env, consultantId),
+    consultant_name: hideConsultantInfo ? row.agencia_name : row.colaborador_name,
+    consultant_email: hideConsultantInfo ? row.agencia_email : row.colaborador_email,
+    consultant_photo:
+      resolveWebsiteFileUrl(
+        env,
+        hideConsultantInfo ? row.agencia_foto : row.colaborador_foto,
+        row.agencia_id,
+        agencyHash
+      ) || `${env.URL_IMO360.replace(/\/+$/, '')}/assets/images/profile.png`,
+    consultant_phone: resolveConsultantPhone(row, hideConsultantInfo),
+    consultant_whatsapp: hideConsultantInfo ? null : row.colaborador_whatsapp_number,
+    images: [image],
+    thumbnail,
+    totalimages: countOnlineImages(images),
+    divisoes,
+    equipamentos,
+    infraestruturas,
+    servicos,
+    segurancas,
+    zonaenvolventes,
+    virtualstaging,
+    fichapdf: `${env.URL_IMO360.replace(/\/+$/, '')}/api/getImov/`,
+    images_link: `${url.origin}/api/preview/${encodeId(env, row.id)}/images`,
+    link_agendamento_visita:
+      toBool(row.colaborador_agendar_visita_website) && asNullableString(row.colaborador_calendar_visita_website)
+        ? row.colaborador_calendar_visita_website
+        : null
+  }
+}
+
+export async function getPreviewBySlug(
+  env: Bindings,
+  slug: string,
+  url: URL
+): Promise<Record<string, unknown> | null> {
+  const lang = normalizeLang(url.searchParams.get('lang') || undefined)
+
+  const row = await findPreviewMainBySlug(env, slug)
 
   if (!row) {
     return null

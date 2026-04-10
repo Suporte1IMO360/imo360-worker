@@ -22,7 +22,7 @@ import {
   getImoveisSimilarByHash,
   getImoveisVirtualTourByHash
 } from '../services/imoveis-random.service'
-import { getPreviewByHash, getPreviewImagesByHash } from '../services/preview.service'
+import { getPreviewByHash, getPreviewBySlug, getPreviewImagesByHash } from '../services/preview.service'
 
 const router = new Hono<AppEnv>()
 
@@ -203,6 +203,17 @@ router.get('/imoveis/:hash/similar', async (c) => {
 router.get('/preview/:hash', async (c) => {
   const hash = c.req.param('hash')
   const payload = await getPreviewByHash(c.env, hash, new URL(c.req.url))
+
+  if (!payload) {
+    return c.json({ ok: false, error: 'not_found', message: 'Imovel nao encontrado.' }, 404)
+  }
+
+  return c.json(payload)
+})
+
+router.get('/property/preview/:slug', async (c) => {
+  const slug = c.req.param('slug')
+  const payload = await getPreviewBySlug(c.env, slug, new URL(c.req.url))
 
   if (!payload) {
     return c.json({ ok: false, error: 'not_found', message: 'Imovel nao encontrado.' }, 404)
