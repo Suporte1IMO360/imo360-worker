@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import type { AppEnv } from '../types/env'
-import { decodeSingleHash } from '../utils/hashid'
 import {
   getCesByHash,
   getConcelhoDistritoById,
@@ -23,6 +22,7 @@ import {
   getImoveisSimilarByHash,
   getImoveisVirtualTourByHash
 } from '../services/imoveis-random.service'
+import { getPreviewByHash, getPreviewImagesByHash } from '../services/preview.service'
 
 const router = new Hono<AppEnv>()
 
@@ -202,26 +202,20 @@ router.get('/imoveis/:hash/similar', async (c) => {
 
 router.get('/preview/:hash', async (c) => {
   const hash = c.req.param('hash')
-  const id = decodeSingleHash(c.env, hash)
+  const payload = await getPreviewByHash(c.env, hash, new URL(c.req.url))
 
-  return c.json({
-    endpoint: 'preview',
-    hash,
-    decoded_id: id,
-    status: 'ok'
-  })
+  if (!payload) {
+    return c.json({ ok: false, error: 'not_found', message: 'Imovel nao encontrado.' }, 404)
+  }
+
+  return c.json(payload)
 })
 
 router.get('/preview/:hash/images', async (c) => {
   const hash = c.req.param('hash')
-  const id = decodeSingleHash(c.env, hash)
+  const payload = await getPreviewImagesByHash(c.env, hash)
 
-  return c.json({
-    endpoint: 'preview.images',
-    hash,
-    decoded_id: id,
-    status: 'ok'
-  })
+  return c.json(payload)
 })
 
 export default router
