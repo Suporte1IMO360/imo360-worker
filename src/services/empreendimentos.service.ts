@@ -3,6 +3,7 @@ import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
   findEmpreendimentosConcelhosByAgencyIds,
   findEmpreendimentosDistritosByAgencyIds,
+  findEmpreendimentosFreguesiasByAgencyIds,
   searchEmpreendimentosRows,
   type EmpreendimentoSearchRow
 } from '../repositories/website.repository'
@@ -249,6 +250,25 @@ export async function getEmpreendimentosConcelhosByHash(
   const scopeIds = resolveScopeIds(decodedId)
   const distritoId = parsePositiveInt(searchParams.get('distrito_id'))
   const rows = await findEmpreendimentosConcelhosByAgencyIds(env, scopeIds, distritoId)
+
+  return rows.reduce<Record<string, string>>((acc, row) => {
+    if (row.name !== null && row.name !== undefined) {
+      acc[String(row.id)] = titleCase(row.name)
+    }
+
+    return acc
+  }, {})
+}
+
+export async function getEmpreendimentosFreguesiasByHash(
+  env: Bindings,
+  hash: string,
+  searchParams: URLSearchParams
+): Promise<Record<string, string>> {
+  const decodedId = decodeSingleHash(env, hash)
+  const scopeIds = resolveScopeIds(decodedId)
+  const concelhoId = parsePositiveInt(searchParams.get('concelho_id'))
+  const rows = await findEmpreendimentosFreguesiasByAgencyIds(env, scopeIds, concelhoId)
 
   return rows.reduce<Record<string, string>>((acc, row) => {
     if (row.name !== null && row.name !== undefined) {

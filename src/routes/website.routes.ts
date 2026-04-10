@@ -16,7 +16,8 @@ import { getImoveisByConsultantHash } from '../services/imoveis-random.service'
 import {
   getEmpreendimentosByHash,
   getEmpreendimentosConcelhosByHash,
-  getEmpreendimentosDistritosByHash
+  getEmpreendimentosDistritosByHash,
+  getEmpreendimentosFreguesiasByHash
 } from '../services/empreendimentos.service'
 
 const router = new Hono<AppEnv>()
@@ -176,6 +177,15 @@ router.get('/empreendimentos/:hash/concelhos', async (c) => {
   const url = new URL(c.req.url)
 
   const payload = await getEmpreendimentosConcelhosByHash(c.env, hash, url.searchParams)
+
+  return c.json(payload)
+})
+
+router.get('/empreendimentos/:hash/freguesias', async (c) => {
+  const hash = c.req.param('hash')
+  const url = new URL(c.req.url)
+
+  const payload = await getEmpreendimentosFreguesiasByHash(c.env, hash, url.searchParams)
 
   return c.json(payload)
 })

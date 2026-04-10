@@ -145,6 +145,7 @@ git push -u origin main
 - `GET /api/empreendimentos/:hash[?lang=pt|en|es|fr|de][&distrito_id=<id>][&concelho_id=<id>][&freguesia_id=<id>][&text=<q>][&sort=0|1|2|3][&page=<n>]`
 - `GET /api/empreendimentos/:hash/distritos`
 - `GET /api/empreendimentos/:hash/concelhos[&distrito_id=<id>]`
+- `GET /api/empreendimentos/:hash/freguesias[&concelho_id=<id>]`
 - `GET /api/naturezas/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/negocios/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/places/:hash?qry=<texto>[&type=1]`

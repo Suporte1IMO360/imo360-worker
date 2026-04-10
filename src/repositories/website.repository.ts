@@ -1115,3 +1115,40 @@ export async function findEmpreendimentosConcelhosByAgencyIds(
     params
   )
 }
+
+export async function findEmpreendimentosFreguesiasByAgencyIds(
+  env: Bindings,
+  agencyIds: number[],
+  concelhoId?: number
+): Promise<EmpreendimentoDistritoRow[]> {
+  if (agencyIds.length === 0) {
+    return []
+  }
+
+  const scopeSql = placeholders(agencyIds)
+  const params: QueryParams = [...agencyIds]
+  let concelhoSql = ''
+
+  if (concelhoId) {
+    concelhoSql = 'AND e.concelho_id = ?'
+    params.push(concelhoId)
+  }
+
+  return queryRows<EmpreendimentoDistritoRow>(
+    env,
+    `
+      SELECT f.id, f.name
+      FROM freguesias f
+      WHERE f.id IN (
+        SELECT e.freguesia_id
+        FROM empreendimentos e
+        WHERE e.agencia_id IN (${scopeSql})
+          AND e.online = 1
+          AND e.freguesia_id IS NOT NULL
+          ${concelhoSql}
+      )
+      ORDER BY f.name ASC, f.id ASC
+    `,
+    params
+  )
+}
