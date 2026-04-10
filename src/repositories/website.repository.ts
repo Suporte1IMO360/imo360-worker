@@ -121,6 +121,12 @@ export type HomepageBlockRow = RowDataPacket & {
   link_de: string | null
 }
 
+export type AboutBlockRow = RowDataPacket & {
+  video_url: string | null
+  description: string | null
+  image: string | null
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -422,5 +428,28 @@ export async function findHomepageBlocksByAgencyId(
       ORDER BY wh.bloco ASC
     `,
     [agencyId]
+  )
+}
+
+export async function findAboutBlockByAgencyIdAndLang(
+  env: Bindings,
+  agencyId: number,
+  lang: string
+): Promise<AboutBlockRow | null> {
+  return querySingleRow<AboutBlockRow>(
+    env,
+    `
+      SELECT
+        wab.video_url,
+        wab.description,
+        wab.image
+      FROM website_about_blocks wab
+      JOIN websites w ON w.id = wab.website_id
+      WHERE w.agencia_id = ?
+        AND wab.lang = ?
+      ORDER BY wab.\`order\` ASC, wab.id ASC
+      LIMIT 1
+    `,
+    [agencyId, lang]
   )
 }

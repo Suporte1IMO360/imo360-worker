@@ -3,6 +3,7 @@ import type { AppEnv } from '../types/env'
 import { decodeSingleHash } from '../utils/hashid'
 import { getWebsitePayloadByHash } from '../services/website.service'
 import { getHomepageBlocksByHash } from '../services/homepage-blocks.service'
+import { getAboutByHash } from '../services/about.service'
 
 const router = new Hono<AppEnv>()
 
@@ -11,6 +12,15 @@ router.get('/website/:hash/homepage/blocks', async (c) => {
   const lang = c.req.query('lang')
 
   const payload = await getHomepageBlocksByHash(c.env, hash, lang)
+
+  return c.json(payload)
+})
+
+router.get('/about/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const lang = c.req.query('lang')
+
+  const payload = await getAboutByHash(c.env, hash, lang)
 
   return c.json(payload)
 })
