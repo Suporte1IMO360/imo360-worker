@@ -18,6 +18,7 @@ import {
 } from '../services/imoveis-filters.service'
 import {
   getImoveisExclusiveByHash,
+  getImoveisByHash,
   getImoveisRandomByHash,
   getImoveisSimilarByHash,
   getImoveisVirtualTourByHash
@@ -152,16 +153,10 @@ router.get('/freguesias/:hash', async (c) => {
 
 router.get('/imoveis/:hash', async (c) => {
   const hash = c.req.param('hash')
-  const id = decodeSingleHash(c.env, hash)
-  const query = c.req.query()
+  const url = new URL(c.req.url)
+  const payload = await getImoveisByHash(c.env, hash, url.searchParams, url)
 
-  return c.json({
-    endpoint: 'imoveis',
-    hash,
-    decoded_id: id,
-    filters: query,
-    status: 'ok'
-  })
+  return c.json(payload)
 })
 
 router.get('/imoveisrandom/:hash', async (c) => {
@@ -211,6 +206,18 @@ router.get('/preview/:hash', async (c) => {
 
   return c.json({
     endpoint: 'preview',
+    hash,
+    decoded_id: id,
+    status: 'ok'
+  })
+})
+
+router.get('/preview/:hash/images', async (c) => {
+  const hash = c.req.param('hash')
+  const id = decodeSingleHash(c.env, hash)
+
+  return c.json({
+    endpoint: 'preview.images',
     hash,
     decoded_id: id,
     status: 'ok'

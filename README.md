@@ -154,8 +154,9 @@ git push -u origin main
 - `GET /api/imoveis/:hash/virtualtour?lang=pt|en|es|fr|de`
 - `GET /api/imoveis/:hash/exclusive?lang=pt|en|es|fr|de`
 - `GET /api/imoveis/:hash/similar?lang=pt|en|es|fr|de[&imov_id=<hash>][&imovsubnature_id=<id>][&distrito_id=<id>][&concelho_id=<id>]`
-- `GET /api/imoveis/:hash`
+- `GET /api/imoveis/:hash` (filtros Laravel: place, referencia, tipologias, preco, areas, equipamentos, infraestruturas, zonaenvolventes, flags, sort, page)
 - `GET /api/preview/:hash`
+- `GET /api/preview/:hash/images`
 
 ## 8.1 Validar apenas endpoint website
 

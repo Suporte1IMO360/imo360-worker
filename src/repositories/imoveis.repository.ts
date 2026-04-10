@@ -1043,3 +1043,374 @@ export async function findFreguesiasRowsOnlineOnly(
     excludeDeleted: false
   })
 }
+
+export type ImoveisSearchRow = ImovelRandomRow & {
+  created_at: string | null
+  imovdisp_id: number | null
+  valor_site: number | null
+  area_util_det: string | null
+  imovtn_name: string | null
+  imovdisp_name: string | null
+}
+
+type ImoveisSearchCountRow = RowDataPacket & {
+  total: number
+}
+
+export type ImoveisSearchFilters = {
+  scopeIds: number[]
+  placeField?: 'distrito' | 'concelho' | 'freguesia'
+  placeId?: number
+  distritoId?: number
+  concelhoId?: number
+  freguesiaId?: number
+  reference?: string
+  imovnatureIds?: number[]
+  agenciasId?: number
+  imovtnIds?: number[]
+  imovceId?: number
+  imovestId?: number
+  zonaId?: number
+  imovdispId?: number
+  precoMin?: number
+  precoMax?: number
+  baixapreco?: boolean
+  imovelBanca?: boolean
+  exclusivo?: boolean
+  negociavel?: boolean
+  permuta?: boolean
+  destaque?: boolean
+  novidade?: boolean
+  virtual?: boolean
+  rooms?: number[]
+  minroom?: number
+  maxroom?: number
+  areaMin?: number
+  areaMax?: number
+  equipamentos?: number[]
+  infraestruturas?: number[]
+  zonaenvolventes?: number[]
+  excludeSold?: boolean
+  sort?: number
+  page: number
+  perPage: number
+}
+
+export async function searchImoveisRows(
+  env: Bindings,
+  filters: ImoveisSearchFilters
+): Promise<{ rows: ImoveisSearchRow[]; total: number }> {
+  if (filters.scopeIds.length === 0) {
+    return { rows: [], total: 0 }
+  }
+
+  const userPlaceholders = placeholders(filters.scopeIds)
+  const params: QueryParams = [...filters.scopeIds]
+  const joins: string[] = []
+  const where: string[] = [
+    `i.agencia_id IN (${userPlaceholders})`,
+    'i.online = 1',
+    'i.deleted_at IS NULL',
+    'i.colaborador_id IS NOT NULL'
+  ]
+
+  if (filters.agenciasId) {
+    joins.push('INNER JOIN users ufilter ON ufilter.id = i.colaborador_id')
+    where.push('ufilter.agencias_id = ?')
+    params.push(filters.agenciasId)
+  }
+
+  if (filters.excludeSold) {
+    where.push('i.imovdisp_id != 2')
+  }
+
+  if (filters.placeField && filters.placeId) {
+    if (filters.placeField === 'distrito') {
+      where.push('i.distrito_id = ?')
+      params.push(filters.placeId)
+    }
+
+    if (filters.placeField === 'concelho') {
+      where.push('i.concelho_id = ?')
+      params.push(filters.placeId)
+    }
+
+    if (filters.placeField === 'freguesia') {
+      where.push('i.freguesia_id = ?')
+      params.push(filters.placeId)
+    }
+  } else {
+    if (filters.distritoId) {
+      where.push('i.distrito_id = ?')
+      params.push(filters.distritoId)
+    }
+
+    if (filters.concelhoId) {
+      where.push('i.concelho_id = ?')
+      params.push(filters.concelhoId)
+    }
+
+    if (filters.freguesiaId) {
+      where.push('i.freguesia_id = ?')
+      params.push(filters.freguesiaId)
+    }
+  }
+
+  if (filters.reference) {
+    where.push('(i.ref LIKE ? OR i.refinterna LIKE ? OR i.ref_secundary LIKE ?)')
+    const query = `%${filters.reference}%`
+    params.push(query, query, query)
+  }
+
+  if (filters.imovnatureIds && filters.imovnatureIds.length > 0) {
+    where.push(`i.imovnature_id IN (${placeholders(filters.imovnatureIds)})`)
+    params.push(...filters.imovnatureIds)
+  }
+
+  if (filters.imovtnIds && filters.imovtnIds.length > 0) {
+    where.push(`i.imovtn_id IN (${placeholders(filters.imovtnIds)})`)
+    params.push(...filters.imovtnIds)
+  }
+
+  if (filters.imovceId) {
+    where.push('i.imovce_id = ?')
+    params.push(filters.imovceId)
+  }
+
+  if (filters.imovestId) {
+    where.push('i.imovest_id = ?')
+    params.push(filters.imovestId)
+  }
+
+  if (filters.zonaId) {
+    where.push('i.zona_id = ?')
+    params.push(filters.zonaId)
+  }
+
+  if (filters.imovdispId) {
+    where.push('i.imovdisp_id = ?')
+    params.push(filters.imovdispId)
+  }
+
+  if (filters.precoMin !== undefined) {
+    where.push('i.valor >= ?')
+    params.push(filters.precoMin)
+  }
+
+  if (filters.precoMax !== undefined) {
+    where.push('i.valor <= ?')
+    params.push(filters.precoMax)
+  }
+
+  if (filters.baixapreco) {
+    where.push('i.baixapreco = 1')
+  }
+
+  if (filters.imovelBanca) {
+    where.push('i.imovelBanca = 1')
+  }
+
+  if (filters.exclusivo) {
+    where.push('i.exclusivo = 1')
+  }
+
+  if (filters.negociavel) {
+    where.push('i.negociavel = 1')
+  }
+
+  if (filters.permuta) {
+    where.push('i.permuta = 1')
+  }
+
+  if (filters.destaque) {
+    where.push('i.destacar = 1')
+  }
+
+  if (filters.novidade) {
+    where.push('i.novidade = 1')
+  }
+
+  if (filters.virtual) {
+    where.push('i.link_3D IS NOT NULL')
+  }
+
+  if (filters.rooms && filters.rooms.length > 0) {
+    where.push(`i.quartos IN (${placeholders(filters.rooms)})`)
+    params.push(...filters.rooms)
+  }
+
+  if (filters.minroom !== undefined) {
+    where.push('i.quartos >= ?')
+    params.push(filters.minroom)
+  }
+
+  if (filters.maxroom !== undefined) {
+    where.push('i.quartos <= ?')
+    params.push(filters.maxroom)
+  }
+
+  if (filters.areaMin !== undefined) {
+    where.push('ia.area_util_det >= ?')
+    params.push(filters.areaMin)
+  }
+
+  if (filters.areaMax !== undefined) {
+    where.push('ia.area_util_det <= ?')
+    params.push(filters.areaMax)
+  }
+
+  if (filters.equipamentos && filters.equipamentos.length > 0) {
+    where.push(
+      `EXISTS (SELECT 1 FROM imov_equipamento ie WHERE ie.imov_id = i.id AND ie.equipamento_id IN (${placeholders(filters.equipamentos)}))`
+    )
+    params.push(...filters.equipamentos)
+  }
+
+  if (filters.infraestruturas && filters.infraestruturas.length > 0) {
+    where.push(
+      `EXISTS (SELECT 1 FROM imov_infraestrutura ii WHERE ii.imov_id = i.id AND ii.infraestrutura_id IN (${placeholders(filters.infraestruturas)}))`
+    )
+    params.push(...filters.infraestruturas)
+  }
+
+  if (filters.zonaenvolventes && filters.zonaenvolventes.length > 0) {
+    where.push(
+      `EXISTS (SELECT 1 FROM imov_zonaenvolvente iz WHERE iz.imov_id = i.id AND iz.zonaenvolvente_id IN (${placeholders(filters.zonaenvolventes)}))`
+    )
+    params.push(...filters.zonaenvolventes)
+  }
+
+  const whereSql = where.length > 0 ? `WHERE ${where.join('\n      AND ')}` : ''
+
+  let orderBySql = 'ORDER BY i.destacar DESC, i.created_at DESC, i.imovdisp_id ASC'
+
+  switch (filters.sort) {
+    case 0:
+      orderBySql = 'ORDER BY i.created_at DESC'
+      break
+    case 1:
+      orderBySql = 'ORDER BY i.created_at ASC'
+      break
+    case 2:
+      orderBySql = 'ORDER BY i.valor_site DESC, i.valor DESC'
+      break
+    case 3:
+      orderBySql = 'ORDER BY i.valor_site ASC, i.valor ASC'
+      break
+    case 4:
+      orderBySql = 'ORDER BY ia.area_util_det DESC'
+      break
+    case 5:
+      orderBySql = 'ORDER BY ia.area_util_det ASC'
+      break
+    default:
+      if (filters.sort !== undefined) {
+        orderBySql = 'ORDER BY i.destacar DESC, i.id DESC'
+      }
+      break
+  }
+
+  const fromSql = `
+    FROM imovs i
+    LEFT JOIN imovareas ia ON ia.imov_id = i.id
+    LEFT JOIN imovnatures n ON n.id = i.imovnature_id
+    LEFT JOIN imovdisps d ON d.id = i.imovdisp_id
+    LEFT JOIN imovtns t ON t.id = i.imovtn_id
+    LEFT JOIN concelhos co ON co.id = i.concelho_id
+    LEFT JOIN freguesias fr ON fr.id = i.freguesia_id
+    LEFT JOIN websites w ON w.agencia_id = i.agencia_id
+    LEFT JOIN users ag ON ag.id = i.agencia_id
+    LEFT JOIN users col ON col.id = i.colaborador_id
+    ${joins.join('\n    ')}
+    ${whereSql}
+  `
+
+  const countSql = `
+    SELECT COUNT(DISTINCT i.id) AS total
+    ${fromSql}
+  `
+
+  const countRows = await queryRows<ImoveisSearchCountRow>(env, countSql, params)
+  const total = Number(countRows[0]?.total || 0)
+
+  const safePage = Math.max(1, filters.page)
+  const safePerPage = Math.max(1, filters.perPage)
+  const offset = (safePage - 1) * safePerPage
+
+  const dataSql = `
+    SELECT
+      i.id,
+      i.agencia_id,
+      i.colaborador_id,
+      i.ref,
+      i.refinterna,
+      i.ref_secundary,
+      i.slug,
+      i.valor,
+      i.valor_site,
+      i.created_at,
+      i.imovdisp_id,
+      i.destacar,
+      i.novidade,
+      i.baixapreco,
+      i.exclusivo,
+      i.wcs,
+      i.quartos,
+      i.garagens,
+      i.cad_area_bruta_privativa,
+      i.cad_area_bruta_dependente,
+      i.cad_area_terreno,
+      i.info_descricao,
+      i.info_descricao_en,
+      i.info_descricao_es,
+      i.info_descricao_fr,
+      i.info_descricao_de,
+      i.titulo_publicacao,
+      i.titulo_publicacao_en,
+      i.titulo_publicacao_es,
+      i.titulo_publicacao_fr,
+      i.titulo_publicacao_de,
+      i.video,
+      i.publicar_video,
+      i.link_3D,
+      i.online_link_vt,
+      i.images,
+      i.imovnature_id,
+      ia.area_util_det,
+      n.name AS imovnature_name,
+      n.pt AS imovnature_pt,
+      n.en AS imovnature_en,
+      n.es AS imovnature_es,
+      n.fr AS imovnature_fr,
+      n.de AS imovnature_de,
+      d.name AS imovdisp_name,
+      d.pt AS imovdisp_pt,
+      d.en AS imovdisp_en,
+      d.es AS imovdisp_es,
+      d.fr AS imovdisp_fr,
+      d.de AS imovdisp_de,
+      t.name AS imovtn_name,
+      t.pt AS imovtn_pt,
+      t.en AS imovtn_en,
+      t.es AS imovtn_es,
+      t.fr AS imovtn_fr,
+      t.de AS imovtn_de,
+      co.name AS concelho_name,
+      fr.name AS freguesia_name,
+      w.ocultarDadosConsultor,
+      w.property_title,
+      ag.name AS agencia_name,
+      ag.email AS agencia_email,
+      ag.foto AS agencia_foto,
+      col.name AS colaborador_name,
+      col.email AS colaborador_email,
+      col.foto AS colaborador_foto
+    ${fromSql}
+    ${orderBySql}
+    LIMIT ? OFFSET ?
+  `
+
+  const rows = await queryRows<ImoveisSearchRow>(env, dataSql, [...params, safePerPage, offset])
+
+  return { rows, total }
+}
