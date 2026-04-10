@@ -139,9 +139,31 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
 }
 
+function normalizePath(path: string): string {
+  return path.replace(/^\/+|\/+$/g, '')
+}
+
+function buildEmpreendimentoImagePath(
+  env: Bindings,
+  row: { id: number; image: string | null; agency_defaultpath: string | null }
+): string | null {
+  const imageFile = row.image ? row.image.trim() : ''
+
+  if (!imageFile) {
+    return null
+  }
+
+  const defaultPrefix = normalizePath(row.agency_defaultpath || '')
+  const empreendimentoHash = encodeId(env, row.id)
+
+  return [defaultPrefix, 'empreendimento', empreendimentoHash, normalizePath(imageFile)]
+    .filter((part) => part.length > 0)
+    .join('/')
+}
+
 function resolveImageUrl(
   env: Bindings,
-  row: { image: string | null; imagepath: string | null }
+  row: { id: number; image: string | null; imagepath: string | null; agency_defaultpath: string | null }
 ): string {
   const rawPath = row.imagepath || row.image
 
@@ -153,7 +175,15 @@ function resolveImageUrl(
     return rawPath
   }
 
-  const normalized = rawPath.replace(/^\/+/, '')
+  let normalized = rawPath.replace(/^\/+/, '')
+
+  if (!normalized.includes('/') || !/empreendimento\//i.test(normalized)) {
+    const built = buildEmpreendimentoImagePath(env, row)
+
+    if (built) {
+      normalized = built
+    }
+  }
 
   if (env.USE_CLOUDFLARE_IMAGES && env.USE_CLOUDFLARE_IMAGES.toLowerCase() === 'true' && env.CF_IMAGES_BASE_URL) {
     return `${normalizeBaseUrl(env.CF_IMAGES_BASE_URL)}/${normalized}`

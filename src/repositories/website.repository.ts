@@ -227,6 +227,7 @@ export type TeamConsultantRow = RowDataPacket & {
 export type EmpreendimentoSearchRow = RowDataPacket & {
   id: number
   agencia_id: number
+  agency_defaultpath: string | null
   image: string | null
   imagepath: string | null
   title_pt: string | null
@@ -244,6 +245,7 @@ export type EmpreendimentoSearchRow = RowDataPacket & {
 export type EmpreendimentoDetailRow = RowDataPacket & {
   id: number
   agencia_id: number
+  agency_defaultpath: string | null
   image: string | null
   imagepath: string | null
   morada: string | null
@@ -1162,6 +1164,7 @@ export async function searchEmpreendimentosRows(
     LEFT JOIN empreendimento_infos ei ON ei.empreendimento_id = e.id
     LEFT JOIN concelhos co ON co.id = e.concelho_id
     LEFT JOIN freguesias fr ON fr.id = e.freguesia_id
+    LEFT JOIN users ag ON ag.id = e.agencia_id
     ${whereSql}
   `
 
@@ -1181,6 +1184,7 @@ export async function searchEmpreendimentosRows(
     SELECT
       e.id,
       e.agencia_id,
+      ag.defaultpath AS agency_defaultpath,
       e.image,
       e.imagepath,
       ei.title_pt,
@@ -1321,6 +1325,7 @@ export async function findEmpreendimentoDetailById(
       SELECT
         e.id,
         e.agencia_id,
+        ag.defaultpath AS agency_defaultpath,
         e.image,
         e.imagepath,
         e.morada,
