@@ -2,8 +2,10 @@ import type { Bindings } from '../types/env'
 import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
   findConsultantRealestateTranslation,
+  findTeamConsultantByAgencyIdsAndUserId,
   findTeamHomepageMembersByAgencyIds,
   findTeamMembersByAgencyIds,
+  type TeamConsultantRow,
   type TeamMemberRow
 } from '../repositories/website.repository'
 import { resolveWebsiteFileUrl } from './website.service'
@@ -39,6 +41,21 @@ type TeamPaginatedResponse = {
   prev_page_url: string | null
   to: number | null
   total: number
+}
+
+type TeamConsultantPayload = {
+  external_id: string
+  title: string
+  apresentacao: string | null
+  active: number | null
+  name: string
+  email: string | null
+  phone: string
+  photo: string
+  whatsapp_number: string
+  facebook: string
+  instagram: string
+  linkedin: string
 }
 
 const SPECIAL_MULTI_AGENCY_HASH_ID = 397
@@ -285,4 +302,90 @@ export async function getTeamHomepageByHash(
   })
 
   return rows.map((row) => mapTeamRowToPayload(env, row, consultantTitle))
+}
+
+function resolveConsultantPhone(row: TeamConsultantRow): string {
+  const hidden = hideContactData(row)
+
+  if (hidden) {
+    if (hasValue(row.website_contacto_telefone)) {
+      return String(row.website_contacto_telefone)
+    }
+
+    if (hasValue(row.agency_user_telefone)) {
+      return String(row.agency_user_telefone)
+    }
+
+    if (hasValue(row.agency_user_telemovel)) {
+      return String(row.agency_user_telemovel)
+    }
+
+    return ''
+  }
+
+  if (hasValue(row.telemovel)) {
+    return String(row.telemovel)
+  }
+
+  if (hasValue(row.telefone)) {
+    return String(row.telefone)
+  }
+
+  return ''
+}
+
+function resolveConsultantEmail(row: TeamConsultantRow): string | null {
+  const hidden = hideContactData(row)
+
+  if (hidden) {
+    return hasValue(row.agency_user_email) ? String(row.agency_user_email) : null
+  }
+
+  return hasValue(row.email) ? String(row.email) : null
+}
+
+function mapConsultantRowToPayload(
+  env: Bindings,
+  row: TeamConsultantRow,
+  consultantTitle: string
+): TeamConsultantPayload {
+  const hidden = hideContactData(row)
+
+  return {
+    external_id: encodeId(env, row.id),
+    title: resolveTitle(row, consultantTitle),
+    apresentacao: row.apresentacao,
+    active: row.activated,
+    name: asString(row.name),
+    email: resolveConsultantEmail(row),
+    phone: resolveConsultantPhone(row),
+    photo: resolvePhoto(env, row),
+    whatsapp_number: getPublicContact(row.whatsapp_number, hidden),
+    facebook: getPublicContact(row.facebook, hidden),
+    instagram: getPublicContact(row.instagram, hidden),
+    linkedin: getPublicContact(row.linkedin, hidden)
+  }
+}
+
+export async function getTeamConsultantByHashes(
+  env: Bindings,
+  agencyHash: string,
+  consultantHash: string,
+  searchParams: URLSearchParams
+): Promise<TeamConsultantPayload | null> {
+  const lang = normalizeLang(searchParams.get('lang') || undefined)
+  const agencyId = decodeSingleHash(env, agencyHash)
+  const consultantId = decodeSingleHash(env, consultantHash)
+  const scopeIds = resolveScopeIds(agencyId)
+
+  const consultantTitle =
+    (await findConsultantRealestateTranslation(env, lang)) || 'Consultant Real Estate'
+
+  const row = await findTeamConsultantByAgencyIdsAndUserId(env, scopeIds, consultantId)
+
+  if (!row) {
+    return null
+  }
+
+  return mapConsultantRowToPayload(env, row, consultantTitle)
 }

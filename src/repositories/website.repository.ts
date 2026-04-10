@@ -198,6 +198,32 @@ export type TeamMemberRow = RowDataPacket & {
   imovelcolaboradores_count: number
 }
 
+export type TeamConsultantRow = RowDataPacket & {
+  id: number
+  agencia_id: number
+  foto: string | null
+  group_id: number | null
+  email: string | null
+  name: string | null
+  telemovel: string | null
+  telefone: string | null
+  user_website_title: string | null
+  apresentacao: string | null
+  public_image: number | null
+  facebook: string | null
+  instagram: string | null
+  linkedin: string | null
+  whatsapp_number: string | null
+  activated: number | null
+  group_name: string | null
+  ocultarDadosConsultor: number | null
+  website_contacto_telefone: string | null
+  agency_user_email: string | null
+  agency_user_telefone: string | null
+  agency_user_telemovel: string | null
+  imovelcolaboradores_count: number
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -811,5 +837,55 @@ export async function findTeamHomepageMembersByAgencyIds(
       ORDER BY u.name ${sortSql}
     `,
     params
+  )
+}
+
+export async function findTeamConsultantByAgencyIdsAndUserId(
+  env: Bindings,
+  agencyIds: number[],
+  userId: number
+): Promise<TeamConsultantRow | null> {
+  if (agencyIds.length === 0) {
+    return null
+  }
+
+  const scopeSql = placeholders(agencyIds)
+
+  return querySingleRow<TeamConsultantRow>(
+    env,
+    `
+      SELECT
+        u.id,
+        u.agencia_id,
+        u.foto,
+        u.group_id,
+        u.email,
+        u.name,
+        u.telemovel,
+        u.telefone,
+        u.user_website_title,
+        u.apresentacao,
+        u.public_image,
+        u.facebook,
+        u.instagram,
+        u.linkedin,
+        u.whatsapp_number,
+        u.activated,
+        g.name AS group_name,
+        w.ocultarDadosConsultor,
+        w.contacto_telefone AS website_contacto_telefone,
+        au.email AS agency_user_email,
+        au.telefone AS agency_user_telefone,
+        au.telemovel AS agency_user_telemovel,
+        0 AS imovelcolaboradores_count
+      FROM users u
+      LEFT JOIN groups g ON g.id = u.group_id
+      LEFT JOIN websites w ON w.agencia_id = u.agencia_id
+      LEFT JOIN users au ON au.id = u.agencia_id
+      WHERE u.agencia_id IN (${scopeSql})
+        AND u.id = ?
+      LIMIT 1
+    `,
+    [...agencyIds, userId]
   )
 }
