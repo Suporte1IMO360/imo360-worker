@@ -22,7 +22,7 @@ import {
   submitEmpreendimentoContactByHash
 } from '../services/empreendimentos.service'
 import { getCategoriesByHash } from '../services/categories.service'
-import { getArticlesByHash } from '../services/articles.service'
+import { getArticleDetailByHash, getArticlesByHash } from '../services/articles.service'
 
 const router = new Hono<AppEnv>()
 
@@ -241,6 +241,19 @@ router.get('/articles/:hash/list', async (c) => {
   const url = new URL(c.req.url)
 
   const payload = await getArticlesByHash(c.env, hash, url.searchParams, url)
+
+  return c.json(payload)
+})
+
+router.get('/articles/:hash/detail', async (c) => {
+  const hash = c.req.param('hash')
+  const lang = c.req.query('lang')
+
+  const payload = await getArticleDetailByHash(c.env, hash, lang)
+
+  if (!payload) {
+    return c.json({ ok: false, error: 'not_found', message: 'Artigo nao encontrado.' }, 404)
+  }
 
   return c.json(payload)
 })

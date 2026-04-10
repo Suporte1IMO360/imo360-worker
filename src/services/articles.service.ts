@@ -1,6 +1,10 @@
 import type { Bindings } from '../types/env'
 import { decodeSingleHash, encodeId } from '../utils/hashid'
-import { searchArticlesByAgencyIds, type ArticleSearchRow } from '../repositories/website.repository'
+import {
+  findArticleById,
+  searchArticlesByAgencyIds,
+  type ArticleSearchRow
+} from '../repositories/website.repository'
 
 type SupportedLang = 'pt' | 'en' | 'es' | 'fr' | 'de'
 
@@ -263,4 +267,20 @@ export async function getArticlesByHash(
   const data = rows.map((row) => mapRowToPayload(env, row, lang))
 
   return buildPaginator(requestUrl, searchParams, page, ARTICLES_PER_PAGE, total, data)
+}
+
+export async function getArticleDetailByHash(
+  env: Bindings,
+  hash: string,
+  langInput?: string
+): Promise<ArticlePayload | null> {
+  const lang = normalizeLang(langInput)
+  const articleId = decodeSingleHash(env, hash)
+  const row = await findArticleById(env, articleId)
+
+  if (!row) {
+    return null
+  }
+
+  return mapRowToPayload(env, row, lang)
 }
