@@ -4,6 +4,10 @@ import type { Bindings } from '../types/env'
 
 type QueryParams = Array<string | number | null>
 
+function placeholders(values: unknown[]): string {
+  return values.map(() => '?').join(', ')
+}
+
 type WebsiteBaseRow = RowDataPacket & {
   id: number
   agencia_id: number
@@ -172,6 +176,26 @@ export type WebsiteSliderRow = RowDataPacket & {
   img: string | null
   option_img_home: number | null
   admin_image_imagem: string | null
+}
+
+export type TeamMemberRow = RowDataPacket & {
+  id: number
+  agencia_id: number
+  email: string | null
+  foto: string | null
+  name: string | null
+  telemovel: string | null
+  user_website_title: string | null
+  public_image: number | null
+  whatsapp_number: string | null
+  facebook: string | null
+  instagram: string | null
+  linkedin: string | null
+  group_id: number | null
+  activated: number | null
+  group_name: string | null
+  ocultarDadosConsultor: number | null
+  imovelcolaboradores_count: number
 }
 
 async function querySingleRow<T extends RowDataPacket>(
@@ -614,4 +638,111 @@ export async function findWebsiteSlidersByAgencyId(
     `,
     [agencyId]
   )
+}
+
+export async function findConsultantRealestateTranslation(
+  env: Bindings,
+  locale: 'pt' | 'en' | 'es' | 'fr' | 'de'
+): Promise<string | null> {
+  const row = await querySingleRow<RowDataPacket & { value: string | null }>(
+    env,
+    `
+      SELECT t.value
+      FROM translations t
+      WHERE t.locale = ?
+        AND t.key = 'Consultant_realestate'
+        AND t.\`group\` = 'app'
+      LIMIT 1
+    `,
+    [locale]
+  )
+
+  return row?.value ?? null
+}
+
+export async function findTeamMembersByAgencyIds(
+  env: Bindings,
+  agencyIds: number[],
+  options: {
+    text?: string
+    sort?: 0 | 1
+    page: number
+    perPage: number
+  }
+): Promise<{ rows: TeamMemberRow[]; total: number }> {
+  if (agencyIds.length === 0) {
+    return { rows: [], total: 0 }
+  }
+
+  const scopeSql = placeholders(agencyIds)
+  const where: string[] = [
+    `u.agencia_id IN (${scopeSql})`,
+    `u.activated = 1`,
+    `u.show_user_website = 1`,
+    `u.deleted_at IS NULL`,
+    `u.group_id IN (SELECT g.id FROM groups g WHERE LOWER(g.name) IN ('consultor', 'coordenador', 'consultant', 'coordinator'))`
+  ]
+  const params: QueryParams = [...agencyIds]
+
+  if (options.text && options.text.trim() !== '') {
+    where.push('u.name LIKE ?')
+    params.push(`%${options.text.trim()}%`)
+  }
+
+  const whereSql = where.join('\n      AND ')
+
+  const totalRows = await queryRows<RowDataPacket & { total: number }>(
+    env,
+    `
+      SELECT COUNT(*) AS total
+      FROM users u
+      WHERE ${whereSql}
+    `,
+    params
+  )
+
+  const total = Number(totalRows[0]?.total || 0)
+  const sortSql = options.sort === 1 ? 'DESC' : 'ASC'
+  const safePage = Math.max(1, options.page)
+  const safePerPage = Math.max(1, options.perPage)
+  const offset = (safePage - 1) * safePerPage
+
+  const rows = await queryRows<TeamMemberRow>(
+    env,
+    `
+      SELECT
+        u.id,
+        u.agencia_id,
+        u.email,
+        u.foto,
+        u.name,
+        u.telemovel,
+        u.user_website_title,
+        u.public_image,
+        u.whatsapp_number,
+        u.facebook,
+        u.instagram,
+        u.linkedin,
+        u.group_id,
+        u.activated,
+        g.name AS group_name,
+        w.ocultarDadosConsultor,
+        (
+          SELECT COUNT(*)
+          FROM imovs i
+          WHERE i.colaborador_id = u.id
+            AND i.online = 1
+            AND i.deleted_at IS NULL
+        ) AS imovelcolaboradores_count
+      FROM users u
+      LEFT JOIN websites w ON w.agencia_id = u.agencia_id
+      LEFT JOIN groups g ON g.id = u.group_id
+      WHERE ${whereSql}
+      ORDER BY u.name ${sortSql}
+      LIMIT ? OFFSET ?
+    `,
+    [...params, safePerPage, offset]
+  )
+
+  return { rows, total }
 }
