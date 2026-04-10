@@ -21,6 +21,7 @@ import {
   getEmpreendimentosFreguesiasByHash,
   submitEmpreendimentoContactByHash
 } from '../services/empreendimentos.service'
+import { getCategoriesByHash } from '../services/categories.service'
 
 const router = new Hono<AppEnv>()
 
@@ -223,6 +224,15 @@ router.post('/empreendimentos/:hash/contact', async (c) => {
   const result = await submitEmpreendimentoContactByHash(c.env, hash, payload)
 
   return c.json(result.body, result.status as 200 | 400)
+})
+
+router.get('/categories/:hash/list', async (c) => {
+  const hash = c.req.param('hash')
+  const lang = c.req.query('lang')
+
+  const payload = await getCategoriesByHash(c.env, hash, lang)
+
+  return c.json(payload)
 })
 
 export default router

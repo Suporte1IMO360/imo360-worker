@@ -306,6 +306,11 @@ export type EmpreendimentoDistritoRow = RowDataPacket & {
   name: string | null
 }
 
+export type CategoryRow = RowDataPacket & {
+  id: number
+  title: string | null
+}
+
 type EmpreendimentoAgencyRow = RowDataPacket & {
   id: number
   agencia_id: number
@@ -1411,4 +1416,38 @@ export async function createEmpreendimentoLead(
   )
 
   return Number(result.insertId || 0)
+}
+
+export async function findCategoriesByUserIdsAndLang(
+  env: Bindings,
+  userIds: number[],
+  lang: 'pt' | 'en' | 'es' | 'fr' | 'de'
+): Promise<CategoryRow[]> {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  const scopeSql = placeholders(userIds)
+  const langColumn =
+    lang === 'en'
+      ? 'c.title_en'
+      : lang === 'es'
+        ? 'c.title_es'
+        : lang === 'fr'
+          ? 'c.title_fr'
+          : lang === 'de'
+            ? 'c.title_de'
+            : 'c.title_pt'
+
+  return queryRows<CategoryRow>(
+    env,
+    `
+      SELECT c.id, ${langColumn} AS title
+      FROM categories c
+      WHERE c.user_id IN (${scopeSql})
+        AND c.active = 1
+      ORDER BY ${langColumn} ASC
+    `,
+    userIds
+  )
 }

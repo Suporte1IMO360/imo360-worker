@@ -148,6 +148,7 @@ git push -u origin main
 - `GET /api/empreendimentos/:hash/freguesias[&concelho_id=<id>]`
 - `GET /api/empreendimentos/:hash/preview/:hash2[?lang=pt|en|es|fr|de]`
 - `POST /api/empreendimentos/:hash/contact`
+- `GET /api/categories/:hash/list[?lang=pt|en|es|fr|de]`
 - `GET /api/naturezas/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/negocios/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/places/:hash?qry=<texto>[&type=1]`
