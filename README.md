@@ -139,6 +139,7 @@ git push -u origin main
 - `GET /api/contacts/:hash`
 - `GET /api/sliders/:hash`
 - `GET /api/team/:hash[?lang=pt|en|es|fr|de][&text=<nome>][&sort=0|1][&page=<n>]`
+- `GET /api/team/:hash/homepage[?lang=pt|en|es|fr|de][&text=<nome>][&sort=0|1]`
 - `GET /api/naturezas/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/negocios/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/places/:hash?qry=<texto>[&type=1]`

@@ -7,7 +7,7 @@ import { getServicesByHash } from '../services/services.service'
 import { getContactsByHash } from '../services/contacts.service'
 import { getCustomModalByHash } from '../services/custom-modal.service'
 import { getSlidersByHash } from '../services/sliders.service'
-import { getTeamByHash } from '../services/team.service'
+import { getTeamByHash, getTeamHomepageByHash } from '../services/team.service'
 
 const router = new Hono<AppEnv>()
 
@@ -108,6 +108,15 @@ router.get('/team/:hash', async (c) => {
   const url = new URL(c.req.url)
 
   const payload = await getTeamByHash(c.env, hash, url.searchParams, url)
+
+  return c.json(payload)
+})
+
+router.get('/team/:hash/homepage', async (c) => {
+  const hash = c.req.param('hash')
+  const url = new URL(c.req.url)
+
+  const payload = await getTeamHomepageByHash(c.env, hash, url.searchParams)
 
   return c.json(payload)
 })

@@ -746,3 +746,70 @@ export async function findTeamMembersByAgencyIds(
 
   return { rows, total }
 }
+
+export async function findTeamHomepageMembersByAgencyIds(
+  env: Bindings,
+  agencyIds: number[],
+  options: {
+    text?: string
+    sort?: 0 | 1
+  }
+): Promise<TeamMemberRow[]> {
+  if (agencyIds.length === 0) {
+    return []
+  }
+
+  const scopeSql = placeholders(agencyIds)
+  const where: string[] = [
+    `u.agencia_id IN (${scopeSql})`,
+    `u.activated = 1`,
+    `u.show_user_website = 1`,
+    `u.deleted_at IS NULL`,
+    `u.group_id IN (SELECT g.id FROM groups g WHERE LOWER(g.name) IN ('consultor', 'coordenador', 'consultant', 'coordinator'))`
+  ]
+  const params: QueryParams = [...agencyIds]
+
+  if (options.text && options.text.trim() !== '') {
+    where.push('u.name LIKE ?')
+    params.push(`%${options.text.trim()}%`)
+  }
+
+  const whereSql = where.join('\n      AND ')
+  const sortSql = options.sort === 1 ? 'DESC' : 'ASC'
+
+  return queryRows<TeamMemberRow>(
+    env,
+    `
+      SELECT
+        u.id,
+        u.agencia_id,
+        u.email,
+        u.foto,
+        u.name,
+        u.telemovel,
+        u.user_website_title,
+        u.public_image,
+        u.whatsapp_number,
+        u.facebook,
+        u.instagram,
+        u.linkedin,
+        u.group_id,
+        u.activated,
+        g.name AS group_name,
+        w.ocultarDadosConsultor,
+        (
+          SELECT COUNT(*)
+          FROM imovs i
+          WHERE i.colaborador_id = u.id
+            AND i.online = 1
+            AND i.deleted_at IS NULL
+        ) AS imovelcolaboradores_count
+      FROM users u
+      LEFT JOIN websites w ON w.agencia_id = u.agencia_id
+      LEFT JOIN groups g ON g.id = u.group_id
+      WHERE ${whereSql}
+      ORDER BY u.name ${sortSql}
+    `,
+    params
+  )
+}

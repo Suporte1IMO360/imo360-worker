@@ -2,6 +2,7 @@ import type { Bindings } from '../types/env'
 import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
   findConsultantRealestateTranslation,
+  findTeamHomepageMembersByAgencyIds,
   findTeamMembersByAgencyIds,
   type TeamMemberRow
 } from '../repositories/website.repository'
@@ -262,4 +263,26 @@ export async function getTeamByHash(
   const payload = rows.map((row) => mapTeamRowToPayload(env, row, consultantTitle))
 
   return buildPaginator(requestUrl, searchParams, page, TEAM_PER_PAGE, total, payload)
+}
+
+export async function getTeamHomepageByHash(
+  env: Bindings,
+  hash: string,
+  searchParams: URLSearchParams
+): Promise<TeamMemberPayload[]> {
+  const lang = normalizeLang(searchParams.get('lang') || undefined)
+  const decodedId = decodeSingleHash(env, hash)
+  const scopeIds = resolveScopeIds(decodedId)
+  const text = searchParams.get('text') || undefined
+  const sort = parseSort(searchParams.get('sort') || undefined)
+
+  const consultantTitle =
+    (await findConsultantRealestateTranslation(env, lang)) || 'Consultant Real Estate'
+
+  const rows = await findTeamHomepageMembersByAgencyIds(env, scopeIds, {
+    text,
+    sort
+  })
+
+  return rows.map((row) => mapTeamRowToPayload(env, row, consultantTitle))
 }
