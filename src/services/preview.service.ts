@@ -2,6 +2,7 @@ import type { Bindings } from '../types/env'
 import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
   countPreviewVirtualStaging,
+  findPreviewVideoByImovId,
   findPreviewDivisions,
   findPreviewFeatureLabels,
   findPreviewMainByImovId,
@@ -536,4 +537,11 @@ export async function getPreviewImagesByHash(env: Bindings, hash: string): Promi
     .filter((item) => Number(item.online) === 1)
     .map((item) => resolveWebsiteFileUrl(env, item.file, row.agencia_id, agencyHash))
     .filter((item): item is string => Boolean(item))
+}
+
+export async function getPreviewVideoByHash(env: Bindings, hash: string): Promise<string> {
+  const imovId = decodeSingleHash(env, hash)
+  const video = await findPreviewVideoByImovId(env, imovId)
+
+  return video || ''
 }

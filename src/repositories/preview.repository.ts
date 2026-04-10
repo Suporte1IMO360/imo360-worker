@@ -105,6 +105,10 @@ type PreviewIdRow = RowDataPacket & {
   id: number
 }
 
+type PreviewVideoRow = RowDataPacket & {
+  video: string | null
+}
+
 async function queryRows<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -399,4 +403,19 @@ export async function incrementPreviewVisit(env: Bindings, imovId: number): Prom
   `
 
   await queryRows<RowDataPacket>(env, updateSql, [visitRows[0].id])
+}
+
+export async function findPreviewVideoByImovId(
+  env: Bindings,
+  imovId: number
+): Promise<string | null> {
+  const sql = `
+    SELECT i.video
+    FROM imovs i
+    WHERE i.id = ?
+    LIMIT 1
+  `
+
+  const rows = await queryRows<PreviewVideoRow>(env, sql, [imovId])
+  return rows[0]?.video ?? null
 }

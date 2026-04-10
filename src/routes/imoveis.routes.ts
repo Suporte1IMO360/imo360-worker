@@ -22,7 +22,12 @@ import {
   getImoveisSimilarByHash,
   getImoveisVirtualTourByHash
 } from '../services/imoveis-random.service'
-import { getPreviewByHash, getPreviewBySlug, getPreviewImagesByHash } from '../services/preview.service'
+import {
+  getPreviewByHash,
+  getPreviewBySlug,
+  getPreviewImagesByHash,
+  getPreviewVideoByHash
+} from '../services/preview.service'
 
 const router = new Hono<AppEnv>()
 
@@ -227,6 +232,13 @@ router.get('/preview/:hash/images', async (c) => {
   const payload = await getPreviewImagesByHash(c.env, hash)
 
   return c.json(payload)
+})
+
+router.get('/preview/:hash/video', async (c) => {
+  const hash = c.req.param('hash')
+  const payload = await getPreviewVideoByHash(c.env, hash)
+
+  return c.text(payload)
 })
 
 export default router
