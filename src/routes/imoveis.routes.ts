@@ -27,6 +27,7 @@ import {
   getPreviewBySlug,
   getPreviewImagesByHash,
   getPreviewVideoByHash,
+  getPreviewVirtualStagingByHash,
   getPreviewVirtualTourByHash
 } from '../services/preview.service'
 
@@ -250,6 +251,18 @@ router.get('/preview/:hash/video', async (c) => {
 router.get('/preview/:hash/virtualtour', async (c) => {
   const hash = c.req.param('hash')
   const payload = await getPreviewVirtualTourByHash(c.env, hash)
+
+  return c.json(payload)
+})
+
+router.get('/preview/:hash/virtualstaging', async (c) => {
+  const hash = c.req.param('hash')
+
+  if (hash === 'undefined') {
+    return c.body(null, 200)
+  }
+
+  const payload = await getPreviewVirtualStagingByHash(c.env, hash)
 
   return c.json(payload)
 })

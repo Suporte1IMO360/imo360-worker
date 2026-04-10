@@ -160,6 +160,7 @@ git push -u origin main
 - `GET /api/preview/:hash/images`
 - `GET /api/preview/:hash/video`
 - `GET /api/preview/:hash/virtualtour`
+- `GET /api/preview/:hash/virtualstaging`
 
 ## 8.1 Validar apenas endpoint website
 

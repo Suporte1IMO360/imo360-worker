@@ -97,6 +97,11 @@ export type PreviewDivisionRow = RowDataPacket & {
   area: string | null
 }
 
+export type PreviewVirtualStagingRow = RowDataPacket & {
+  name: string | null
+  generated_image: string | null
+}
+
 type CountRow = RowDataPacket & {
   total: number
 }
@@ -437,4 +442,19 @@ export async function findPreviewVirtualTourByImovId(
 
   const rows = await queryRows<PreviewVirtualTourRow>(env, sql, [imovId])
   return rows[0]?.link_3D ?? null
+}
+
+export async function findPreviewVirtualStagingByImovId(
+  env: Bindings,
+  imovId: number
+): Promise<PreviewVirtualStagingRow[]> {
+  const sql = `
+    SELECT vs.name, vs.generated_image
+    FROM imov_virtualstaging iv
+    INNER JOIN virtualstagings vs ON vs.id = iv.virtualstaging_id
+    WHERE iv.imov_id = ?
+    ORDER BY vs.id ASC
+  `
+
+  return queryRows<PreviewVirtualStagingRow>(env, sql, [imovId])
 }

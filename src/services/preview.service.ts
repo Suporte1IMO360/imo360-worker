@@ -3,6 +3,7 @@ import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
   countPreviewVirtualStaging,
   findPreviewVideoByImovId,
+  findPreviewVirtualStagingByImovId,
   findPreviewVirtualTourByImovId,
   findPreviewDivisions,
   findPreviewFeatureLabels,
@@ -205,6 +206,18 @@ function resolveConsultantPhone(row: PreviewMainRow, hideConsultantInfo: boolean
 
 function resolveEnergyCertification(row: PreviewMainRow): string {
   return asString(row.imovce_name)
+}
+
+function resolveVirtualStagingFullImage(env: Bindings, value: string | null): string {
+  if (!value) {
+    return ''
+  }
+
+  if (/^https?:\/\//i.test(value)) {
+    return value
+  }
+
+  return `${env.URL_IMO360.replace(/\/+$/, '')}/virtualstaging/${String(value).replace(/^\/+/, '')}`
 }
 
 function mapDivisions(rows: PreviewDivisionRow[]): Record<string, Array<{ division: string; area: string }>> {
@@ -559,4 +572,17 @@ export async function getPreviewVirtualTourByHash(
   const virtualtour = await findPreviewVirtualTourByImovId(env, imovId)
 
   return { virtualtour: virtualtour ?? null }
+}
+
+export async function getPreviewVirtualStagingByHash(
+  env: Bindings,
+  hash: string
+): Promise<Array<{ original: string; final: string }>> {
+  const imovId = decodeSingleHash(env, hash)
+  const rows = await findPreviewVirtualStagingByImovId(env, imovId)
+
+  return rows.map((row) => ({
+    original: resolveVirtualStagingFullImage(env, row.name),
+    final: resolveVirtualStagingFullImage(env, row.generated_image)
+  }))
 }
