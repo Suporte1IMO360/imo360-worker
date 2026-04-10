@@ -127,6 +127,11 @@ export type AboutBlockRow = RowDataPacket & {
   image: string | null
 }
 
+export type WebsiteServiceRow = RowDataPacket & {
+  title: string | null
+  description: string | null
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -449,6 +454,31 @@ export async function findAboutBlockByAgencyIdAndLang(
         AND wab.lang = ?
       ORDER BY wab.\`order\` ASC, wab.id ASC
       LIMIT 1
+    `,
+    [agencyId, lang]
+  )
+}
+
+export async function findWebsiteServicesByAgencyIdAndLang(
+  env: Bindings,
+  agencyId: number,
+  lang: string
+): Promise<WebsiteServiceRow[]> {
+  return queryRows<WebsiteServiceRow>(
+    env,
+    `
+      SELECT
+        ws.titulo AS title,
+        ws.texto AS description
+      FROM website_services ws
+      WHERE ws.website_id IN (
+        SELECT w.id
+        FROM websites w
+        WHERE w.agencia_id = ?
+      )
+        AND ws.language = ?
+        AND ws.ativos = 1
+      ORDER BY ws.id ASC
     `,
     [agencyId, lang]
   )
