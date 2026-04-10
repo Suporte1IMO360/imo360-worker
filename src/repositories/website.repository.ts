@@ -168,6 +168,12 @@ export type WebsiteCustomModalRow = RowDataPacket & {
   url: string | null
 }
 
+export type WebsiteSliderRow = RowDataPacket & {
+  img: string | null
+  option_img_home: number | null
+  admin_image_imagem: string | null
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -582,5 +588,30 @@ export async function findWebsiteCustomModalByAgencyIdAndLang(
       LIMIT 1
     `,
     [agencyId, lang]
+  )
+}
+
+export async function findWebsiteSlidersByAgencyId(
+  env: Bindings,
+  agencyId: number
+): Promise<WebsiteSliderRow[]> {
+  return queryRows<WebsiteSliderRow>(
+    env,
+    `
+      SELECT
+        ws.img,
+        ws.option_img_home,
+        ai.imagem AS admin_image_imagem
+      FROM websites w
+      INNER JOIN website_imgslider ws ON ws.website_id = w.id
+      LEFT JOIN adminimagens ai ON ai.id = ws.option_img_home
+      WHERE w.agencia_id = ?
+        AND (
+          (ws.img IS NOT NULL AND ws.option_img_home = 0)
+          OR (ws.img IS NULL AND ws.option_img_home NOT IN (-1, 0))
+        )
+      ORDER BY ws.ordem ASC
+    `,
+    [agencyId]
   )
 }
