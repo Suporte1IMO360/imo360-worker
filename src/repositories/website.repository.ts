@@ -348,6 +348,27 @@ export type ArticleSearchRow = RowDataPacket & {
   created_at: string | null
 }
 
+export type TestimonialRow = RowDataPacket & {
+  information: string | null
+}
+
+export type WebsitePrivacyBaseRow = RowDataPacket & {
+  id: number
+  agencia_id: number
+  first_name: string | null
+  last_name: string | null
+  nif: string | null
+  ami: string | null
+  website_link: string | null
+  email: string | null
+  telefone: string | null
+  morada: string | null
+}
+
+export type WebsitePrivacyTermRow = RowDataPacket & {
+  policies: string | null
+}
+
 type EmpreendimentoAgencyRow = RowDataPacket & {
   id: number
   agencia_id: number
@@ -1673,5 +1694,73 @@ export async function findArticleByAgencyIdAndSlug(
       LIMIT 1
     `,
     [agencyId, slug]
+  )
+}
+
+export async function findTestimonialsByAgencyIds(
+  env: Bindings,
+  agencyIds: number[]
+): Promise<TestimonialRow[]> {
+  if (agencyIds.length === 0) {
+    return []
+  }
+
+  const scopeSql = placeholders(agencyIds)
+
+  return queryRows<TestimonialRow>(
+    env,
+    `
+      SELECT t.information
+      FROM testimonials t
+      WHERE t.agencia_id IN (${scopeSql})
+        AND t.online = 1
+      ORDER BY t.created_at DESC, t.id DESC
+    `,
+    agencyIds
+  )
+}
+
+export async function findWebsitePrivacyBaseByAgencyId(
+  env: Bindings,
+  agencyId: number
+): Promise<WebsitePrivacyBaseRow | null> {
+  return querySingleRow<WebsitePrivacyBaseRow>(
+    env,
+    `
+      SELECT
+        w.id,
+        w.agencia_id,
+        u.first_name,
+        u.last_name,
+        u.nif,
+        u.ami,
+        u.website_link,
+        u.email,
+        u.telefone,
+        u.morada
+      FROM websites w
+      LEFT JOIN users u ON u.id = w.agencia_id
+      WHERE w.agencia_id = ?
+      LIMIT 1
+    `,
+    [agencyId]
+  )
+}
+
+export async function findWebsitePrivacyTermByWebsiteIdAndLang(
+  env: Bindings,
+  websiteId: number,
+  lang: 'pt' | 'en' | 'es' | 'fr' | 'de'
+): Promise<WebsitePrivacyTermRow | null> {
+  return querySingleRow<WebsitePrivacyTermRow>(
+    env,
+    `
+      SELECT wt.policies
+      FROM website_terms wt
+      WHERE wt.website_id = ?
+        AND wt.lang = ?
+      LIMIT 1
+    `,
+    [websiteId, lang]
   )
 }

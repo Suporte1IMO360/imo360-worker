@@ -27,6 +27,8 @@ import {
   getArticleDetailBySlug,
   getArticlesByHash
 } from '../services/articles.service'
+import { getTestimonialsByHash } from '../services/testimonials.service'
+import { getPrivacyPolicyByHash } from '../services/privacy-policy.service'
 
 const router = new Hono<AppEnv>()
 
@@ -278,6 +280,24 @@ router.get('/articles/:slug', async (c) => {
   }
 
   return c.json(payload)
+})
+
+router.get('/testimonials/:hash/list', async (c) => {
+  const hash = c.req.param('hash')
+  const lang = c.req.query('lang')
+
+  const payload = await getTestimonialsByHash(c.env, hash, lang)
+
+  return c.json(payload)
+})
+
+router.get('/politica/privacidade/:hash', async (c) => {
+  const hash = c.req.param('hash')
+  const lang = c.req.query('lang')
+
+  const result = await getPrivacyPolicyByHash(c.env, hash, lang)
+
+  return c.json(result.body, result.status)
 })
 
 export default router
