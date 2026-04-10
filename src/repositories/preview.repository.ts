@@ -109,6 +109,10 @@ type PreviewVideoRow = RowDataPacket & {
   video: string | null
 }
 
+type PreviewVirtualTourRow = RowDataPacket & {
+  link_3D: string | null
+}
+
 async function queryRows<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -418,4 +422,19 @@ export async function findPreviewVideoByImovId(
 
   const rows = await queryRows<PreviewVideoRow>(env, sql, [imovId])
   return rows[0]?.video ?? null
+}
+
+export async function findPreviewVirtualTourByImovId(
+  env: Bindings,
+  imovId: number
+): Promise<string | null> {
+  const sql = `
+    SELECT i.link_3D
+    FROM imovs i
+    WHERE i.id = ?
+    LIMIT 1
+  `
+
+  const rows = await queryRows<PreviewVirtualTourRow>(env, sql, [imovId])
+  return rows[0]?.link_3D ?? null
 }

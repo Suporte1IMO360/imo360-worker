@@ -26,7 +26,8 @@ import {
   getPreviewByHash,
   getPreviewBySlug,
   getPreviewImagesByHash,
-  getPreviewVideoByHash
+  getPreviewVideoByHash,
+  getPreviewVirtualTourByHash
 } from '../services/preview.service'
 
 const router = new Hono<AppEnv>()
@@ -239,6 +240,13 @@ router.get('/preview/:hash/video', async (c) => {
   const payload = await getPreviewVideoByHash(c.env, hash)
 
   return c.text(payload)
+})
+
+router.get('/preview/:hash/virtualtour', async (c) => {
+  const hash = c.req.param('hash')
+  const payload = await getPreviewVirtualTourByHash(c.env, hash)
+
+  return c.json(payload)
 })
 
 export default router

@@ -3,6 +3,7 @@ import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
   countPreviewVirtualStaging,
   findPreviewVideoByImovId,
+  findPreviewVirtualTourByImovId,
   findPreviewDivisions,
   findPreviewFeatureLabels,
   findPreviewMainByImovId,
@@ -544,4 +545,14 @@ export async function getPreviewVideoByHash(env: Bindings, hash: string): Promis
   const video = await findPreviewVideoByImovId(env, imovId)
 
   return video || ''
+}
+
+export async function getPreviewVirtualTourByHash(
+  env: Bindings,
+  hash: string
+): Promise<{ virtualtour: string | null }> {
+  const imovId = decodeSingleHash(env, hash)
+  const virtualtour = await findPreviewVirtualTourByImovId(env, imovId)
+
+  return { virtualtour: virtualtour ?? null }
 }
