@@ -311,6 +311,43 @@ export type CategoryRow = RowDataPacket & {
   title: string | null
 }
 
+export type ArticleSearchRow = RowDataPacket & {
+  id: number
+  title_pt: string | null
+  title_en: string | null
+  title_es: string | null
+  title_fr: string | null
+  title_de: string | null
+  content_pt: string | null
+  content_en: string | null
+  content_es: string | null
+  content_fr: string | null
+  content_de: string | null
+  subcontent_pt: string | null
+  subcontent_en: string | null
+  subcontent_es: string | null
+  subcontent_fr: string | null
+  subcontent_de: string | null
+  seotitle_pt: string | null
+  seotitle_en: string | null
+  seotitle_es: string | null
+  seotitle_fr: string | null
+  seotitle_de: string | null
+  seolink_pt: string | null
+  seolink_en: string | null
+  seolink_es: string | null
+  seolink_fr: string | null
+  seolink_de: string | null
+  seodescription_pt: string | null
+  seodescription_en: string | null
+  seodescription_es: string | null
+  seodescription_fr: string | null
+  seodescription_de: string | null
+  image: string | null
+  imagepath: string | null
+  created_at: string | null
+}
+
 type EmpreendimentoAgencyRow = RowDataPacket & {
   id: number
   agencia_id: number
@@ -318,6 +355,10 @@ type EmpreendimentoAgencyRow = RowDataPacket & {
 
 type LeadMaxRow = RowDataPacket & {
   maxNumLead: number | null
+}
+
+type ArticleSearchCountRow = RowDataPacket & {
+  total: number
 }
 
 async function querySingleRow<T extends RowDataPacket>(
@@ -1450,4 +1491,88 @@ export async function findCategoriesByUserIdsAndLang(
     `,
     userIds
   )
+}
+
+export async function searchArticlesByAgencyIds(
+  env: Bindings,
+  filters: {
+    scopeIds: number[]
+    categoryId?: number
+    page: number
+    perPage: number
+  }
+): Promise<{ rows: ArticleSearchRow[]; total: number }> {
+  if (filters.scopeIds.length === 0) {
+    return { rows: [], total: 0 }
+  }
+
+  const scopeSql = placeholders(filters.scopeIds)
+  const where: string[] = [`a.agencia_id IN (${scopeSql})`, 'a.online = 1']
+  const params: QueryParams = [...filters.scopeIds]
+
+  if (filters.categoryId) {
+    where.push('a.categories_id = ?')
+    params.push(filters.categoryId)
+  }
+
+  const whereSql = `WHERE ${where.join('\n      AND ')}`
+
+  const countSql = `
+    SELECT COUNT(*) AS total
+    FROM articles a
+    ${whereSql}
+  `
+
+  const countRows = await queryRows<ArticleSearchCountRow>(env, countSql, params)
+  const total = Number(countRows[0]?.total || 0)
+
+  const safePage = Math.max(1, filters.page)
+  const safePerPage = Math.max(1, filters.perPage)
+  const offset = (safePage - 1) * safePerPage
+
+  const dataSql = `
+    SELECT
+      a.id,
+      a.title_pt,
+      a.title_en,
+      a.title_es,
+      a.title_fr,
+      a.title_de,
+      a.content_pt,
+      a.content_en,
+      a.content_es,
+      a.content_fr,
+      a.content_de,
+      a.subcontent_pt,
+      a.subcontent_en,
+      a.subcontent_es,
+      a.subcontent_fr,
+      a.subcontent_de,
+      a.seotitle_pt,
+      a.seotitle_en,
+      a.seotitle_es,
+      a.seotitle_fr,
+      a.seotitle_de,
+      a.seolink_pt,
+      a.seolink_en,
+      a.seolink_es,
+      a.seolink_fr,
+      a.seolink_de,
+      a.seodescription_pt,
+      a.seodescription_en,
+      a.seodescription_es,
+      a.seodescription_fr,
+      a.seodescription_de,
+      a.image,
+      a.imagepath,
+      a.created_at
+    FROM articles a
+    ${whereSql}
+    ORDER BY a.id DESC
+    LIMIT ? OFFSET ?
+  `
+
+  const rows = await queryRows<ArticleSearchRow>(env, dataSql, [...params, safePerPage, offset])
+
+  return { rows, total }
 }

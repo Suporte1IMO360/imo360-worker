@@ -22,6 +22,7 @@ import {
   submitEmpreendimentoContactByHash
 } from '../services/empreendimentos.service'
 import { getCategoriesByHash } from '../services/categories.service'
+import { getArticlesByHash } from '../services/articles.service'
 
 const router = new Hono<AppEnv>()
 
@@ -231,6 +232,15 @@ router.get('/categories/:hash/list', async (c) => {
   const lang = c.req.query('lang')
 
   const payload = await getCategoriesByHash(c.env, hash, lang)
+
+  return c.json(payload)
+})
+
+router.get('/articles/:hash/list', async (c) => {
+  const hash = c.req.param('hash')
+  const url = new URL(c.req.url)
+
+  const payload = await getArticlesByHash(c.env, hash, url.searchParams, url)
 
   return c.json(payload)
 })
