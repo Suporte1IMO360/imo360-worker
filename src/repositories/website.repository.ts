@@ -224,6 +224,27 @@ export type TeamConsultantRow = RowDataPacket & {
   imovelcolaboradores_count: number
 }
 
+export type EmpreendimentoSearchRow = RowDataPacket & {
+  id: number
+  agencia_id: number
+  image: string | null
+  imagepath: string | null
+  title_pt: string | null
+  title_en: string | null
+  title_es: string | null
+  title_fr: string | null
+  title_de: string | null
+  concelho_id: number | null
+  freguesia_id: number | null
+  concelho_name: string | null
+  freguesia_name: string | null
+  imovs_count: number
+}
+
+type EmpreendimentoSearchCountRow = RowDataPacket & {
+  total: number
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -888,4 +909,139 @@ export async function findTeamConsultantByAgencyIdsAndUserId(
     `,
     [...agencyIds, userId]
   )
+}
+
+export async function searchEmpreendimentosRows(
+  env: Bindings,
+  filters: {
+    scopeIds: number[]
+    distritoId?: number
+    concelhoId?: number
+    freguesiaId?: number
+    text?: string
+    sort?: number
+    page: number
+    perPage: number
+  }
+): Promise<{ rows: EmpreendimentoSearchRow[]; total: number }> {
+  if (filters.scopeIds.length === 0) {
+    return { rows: [], total: 0 }
+  }
+
+  const scopeSql = placeholders(filters.scopeIds)
+  const where: string[] = [
+    `e.agencia_id IN (${scopeSql})`,
+    'e.online = 1'
+  ]
+  const params: QueryParams = [...filters.scopeIds]
+
+  if (filters.distritoId) {
+    where.push('e.distrito_id = ?')
+    params.push(filters.distritoId)
+  }
+
+  if (filters.concelhoId) {
+    where.push('e.concelho_id = ?')
+    params.push(filters.concelhoId)
+  }
+
+  if (filters.freguesiaId) {
+    where.push('e.freguesia_id = ?')
+    params.push(filters.freguesiaId)
+  }
+
+  if (filters.text && filters.text.trim() !== '') {
+    where.push(`(
+      EXISTS (
+        SELECT 1
+        FROM empreendimento_infos ei_t
+        WHERE ei_t.empreendimento_id = e.id
+          AND ei_t.title_pt LIKE ?
+      )
+      OR EXISTS (
+        SELECT 1
+        FROM imovs i_t
+        WHERE i_t.empreendimento_id = e.id
+          AND (
+            i_t.ref LIKE ?
+            OR i_t.refinterna LIKE ?
+            OR i_t.ref_secundary LIKE ?
+          )
+      )
+    )`)
+    const query = `%${filters.text.trim()}%`
+    params.push(query, query, query, query)
+  }
+
+  const whereSql = where.length > 0 ? `WHERE ${where.join('\n      AND ')}` : ''
+
+  let orderBySql = 'ORDER BY e.updated_at DESC'
+
+  switch (filters.sort) {
+    case 0:
+      orderBySql = 'ORDER BY e.created_at DESC'
+      break
+    case 1:
+      orderBySql = 'ORDER BY e.created_at ASC'
+      break
+    case 2:
+      orderBySql = 'ORDER BY e.updated_at DESC'
+      break
+    case 3:
+      orderBySql = 'ORDER BY e.updated_at ASC'
+      break
+    default:
+      break
+  }
+
+  const fromSql = `
+    FROM empreendimentos e
+    LEFT JOIN empreendimento_infos ei ON ei.empreendimento_id = e.id
+    LEFT JOIN concelhos co ON co.id = e.concelho_id
+    LEFT JOIN freguesias fr ON fr.id = e.freguesia_id
+    ${whereSql}
+  `
+
+  const countSql = `
+    SELECT COUNT(DISTINCT e.id) AS total
+    ${fromSql}
+  `
+
+  const countRows = await queryRows<EmpreendimentoSearchCountRow>(env, countSql, params)
+  const total = Number(countRows[0]?.total || 0)
+
+  const safePage = Math.max(1, filters.page)
+  const safePerPage = Math.max(1, filters.perPage)
+  const offset = (safePage - 1) * safePerPage
+
+  const dataSql = `
+    SELECT
+      e.id,
+      e.agencia_id,
+      e.image,
+      e.imagepath,
+      ei.title_pt,
+      ei.title_en,
+      ei.title_es,
+      ei.title_fr,
+      ei.title_de,
+      e.concelho_id,
+      e.freguesia_id,
+      co.name AS concelho_name,
+      fr.name AS freguesia_name,
+      (
+        SELECT COUNT(*)
+        FROM imovs i
+        WHERE i.empreendimento_id = e.id
+          AND i.deleted_at IS NULL
+      ) AS imovs_count
+    ${fromSql}
+    GROUP BY e.id
+    ${orderBySql}
+    LIMIT ? OFFSET ?
+  `
+
+  const rows = await queryRows<EmpreendimentoSearchRow>(env, dataSql, [...params, safePerPage, offset])
+
+  return { rows, total }
 }
