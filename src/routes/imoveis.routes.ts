@@ -17,6 +17,7 @@ import {
   getZonasByHash
 } from '../services/imoveis-filters.service'
 import {
+  getImoveisExclusiveByHash,
   getImoveisRandomByHash,
   getImoveisVirtualTourByHash
 } from '../services/imoveis-random.service'
@@ -176,6 +177,15 @@ router.get('/imoveis/:hash/virtualtour', async (c) => {
   const lang = c.req.query('lang')
 
   const payload = await getImoveisVirtualTourByHash(c.env, hash, lang)
+
+  return c.json(payload)
+})
+
+router.get('/imoveis/:hash/exclusive', async (c) => {
+  const hash = c.req.param('hash')
+  const lang = c.req.query('lang')
+
+  const payload = await getImoveisExclusiveByHash(c.env, hash, lang)
 
   return c.json(payload)
 })

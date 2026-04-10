@@ -150,6 +150,7 @@ git push -u origin main
 - `GET /api/freguesias/:id` (apenas id numerico)
 - `GET /api/imoveisrandom/:hash?lang=pt|en|es|fr|de`
 - `GET /api/imoveis/:hash/virtualtour?lang=pt|en|es|fr|de`
+- `GET /api/imoveis/:hash/exclusive?lang=pt|en|es|fr|de`
 - `GET /api/imoveis/:hash`
 - `GET /api/preview/:hash`
 

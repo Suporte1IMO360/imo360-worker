@@ -1,6 +1,7 @@
 import type { Bindings } from '../types/env'
 import { encodeId, decodeSingleHash } from '../utils/hashid'
 import {
+  findImoveisExclusiveRows,
   findImoveisRandomRows,
   findImoveisVirtualTourRows,
   findUserReferencePreferenceByAgencyId,
@@ -395,6 +396,19 @@ export async function getImoveisVirtualTourByHash(
   const decodedId = decodeSingleHash(env, hash)
   const scopeIds = resolveScopeIds(decodedId)
   const rows = await findImoveisVirtualTourRows(env, scopeIds)
+
+  return mapRowsToPayload(env, rows, lang, decodedId)
+}
+
+export async function getImoveisExclusiveByHash(
+  env: Bindings,
+  hash: string,
+  langInput?: string
+): Promise<ImovelRandomPayload[]> {
+  const lang = normalizeLang(langInput)
+  const decodedId = decodeSingleHash(env, hash)
+  const scopeIds = resolveScopeIds(decodedId)
+  const rows = await findImoveisExclusiveRows(env, scopeIds)
 
   return mapRowsToPayload(env, rows, lang, decodedId)
 }
