@@ -1,6 +1,7 @@
 import type { Bindings } from '../types/env'
 import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
+  findArticleByAgencyIdAndSlug,
   findArticleById,
   searchArticlesByAgencyIds,
   type ArticleSearchRow
@@ -277,6 +278,23 @@ export async function getArticleDetailByHash(
   const lang = normalizeLang(langInput)
   const articleId = decodeSingleHash(env, hash)
   const row = await findArticleById(env, articleId)
+
+  if (!row) {
+    return null
+  }
+
+  return mapRowToPayload(env, row, lang)
+}
+
+export async function getArticleDetailBySlug(
+  env: Bindings,
+  slug: string,
+  userHash: string,
+  langInput?: string
+): Promise<ArticlePayload | null> {
+  const lang = normalizeLang(langInput)
+  const agencyId = decodeSingleHash(env, userHash)
+  const row = await findArticleByAgencyIdAndSlug(env, agencyId, slug)
 
   if (!row) {
     return null

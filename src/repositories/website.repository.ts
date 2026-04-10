@@ -1623,3 +1623,55 @@ export async function findArticleById(env: Bindings, articleId: number): Promise
     [articleId]
   )
 }
+
+export async function findArticleByAgencyIdAndSlug(
+  env: Bindings,
+  agencyId: number,
+  slug: string
+): Promise<ArticleSearchRow | null> {
+  return querySingleRow<ArticleSearchRow>(
+    env,
+    `
+      SELECT
+        a.id,
+        a.title_pt,
+        a.title_en,
+        a.title_es,
+        a.title_fr,
+        a.title_de,
+        a.content_pt,
+        a.content_en,
+        a.content_es,
+        a.content_fr,
+        a.content_de,
+        a.subcontent_pt,
+        a.subcontent_en,
+        a.subcontent_es,
+        a.subcontent_fr,
+        a.subcontent_de,
+        a.seotitle_pt,
+        a.seotitle_en,
+        a.seotitle_es,
+        a.seotitle_fr,
+        a.seotitle_de,
+        a.seolink_pt,
+        a.seolink_en,
+        a.seolink_es,
+        a.seolink_fr,
+        a.seolink_de,
+        a.seodescription_pt,
+        a.seodescription_en,
+        a.seodescription_es,
+        a.seodescription_fr,
+        a.seodescription_de,
+        a.image,
+        a.imagepath,
+        a.created_at
+      FROM articles a
+      WHERE a.agencia_id = ?
+        AND a.seolink_pt = ?
+      LIMIT 1
+    `,
+    [agencyId, slug]
+  )
+}

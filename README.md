@@ -151,6 +151,7 @@ git push -u origin main
 - `GET /api/categories/:hash/list[?lang=pt|en|es|fr|de]`
 - `GET /api/articles/:hash/list[?lang=pt|en|es|fr|de][&category=<category_hash>][&page=<n>]`
 - `GET /api/articles/:hash/detail[?lang=pt|en|es|fr|de]`
+- `GET /api/articles/:slug[?lang=pt|en|es|fr|de][&user=<agency_hash>]`
 - `GET /api/naturezas/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/negocios/:hash?lang=pt|en|es|fr|de[&type=1]`
 - `GET /api/places/:hash?qry=<texto>[&type=1]`
