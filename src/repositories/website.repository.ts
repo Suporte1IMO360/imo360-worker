@@ -241,6 +241,62 @@ export type EmpreendimentoSearchRow = RowDataPacket & {
   imovs_count: number
 }
 
+export type EmpreendimentoDetailRow = RowDataPacket & {
+  id: number
+  agencia_id: number
+  image: string | null
+  imagepath: string | null
+  morada: string | null
+  online_street: number | null
+  longitude: string | null
+  latitude: string | null
+  distrito_id: number | null
+  concelho_id: number | null
+  freguesia_id: number | null
+  distrito_name: string | null
+  concelho_name: string | null
+  freguesia_name: string | null
+  title_pt: string | null
+  title_en: string | null
+  title_es: string | null
+  title_fr: string | null
+  title_de: string | null
+  description_pt: string | null
+  description_en: string | null
+  description_es: string | null
+  description_fr: string | null
+  description_de: string | null
+  typereferenceimovs: number | null
+}
+
+export type EmpreendimentoDetailImovRow = RowDataPacket & {
+  id: number
+  slug: string | null
+  ref: string | null
+  refinterna: string | null
+  ref_secundary: string | null
+  valor: string | null
+  valor_site: number | null
+  online: number | null
+  area_util_det: string | null
+  imovdisp_name: string | null
+  imovdisp_pt: string | null
+  imovdisp_en: string | null
+  imovdisp_es: string | null
+  imovdisp_fr: string | null
+  imovdisp_de: string | null
+  imovnature_pt: string | null
+  imovnature_en: string | null
+  imovnature_es: string | null
+  imovnature_fr: string | null
+  imovnature_de: string | null
+  imovtn_pt: string | null
+  imovtn_en: string | null
+  imovtn_es: string | null
+  imovtn_fr: string | null
+  imovtn_de: string | null
+}
+
 type EmpreendimentoSearchCountRow = RowDataPacket & {
   total: number
 }
@@ -1150,5 +1206,97 @@ export async function findEmpreendimentosFreguesiasByAgencyIds(
       ORDER BY f.name ASC, f.id ASC
     `,
     params
+  )
+}
+
+export async function findEmpreendimentoDetailById(
+  env: Bindings,
+  empreendimentoId: number
+): Promise<EmpreendimentoDetailRow | null> {
+  return querySingleRow<EmpreendimentoDetailRow>(
+    env,
+    `
+      SELECT
+        e.id,
+        e.agencia_id,
+        e.image,
+        e.imagepath,
+        e.morada,
+        e.online_street,
+        e.longitude,
+        e.latitude,
+        e.distrito_id,
+        e.concelho_id,
+        e.freguesia_id,
+        d.name AS distrito_name,
+        co.name AS concelho_name,
+        fr.name AS freguesia_name,
+        ei.title_pt,
+        ei.title_en,
+        ei.title_es,
+        ei.title_fr,
+        ei.title_de,
+        ei.description_pt,
+        ei.description_en,
+        ei.description_es,
+        ei.description_fr,
+        ei.description_de,
+        ag.typereferenceimovs
+      FROM empreendimentos e
+      LEFT JOIN empreendimento_infos ei ON ei.empreendimento_id = e.id
+      LEFT JOIN distritos d ON d.id = e.distrito_id
+      LEFT JOIN concelhos co ON co.id = e.concelho_id
+      LEFT JOIN freguesias fr ON fr.id = e.freguesia_id
+      LEFT JOIN users ag ON ag.id = e.agencia_id
+      WHERE e.id = ?
+      LIMIT 1
+    `,
+    [empreendimentoId]
+  )
+}
+
+export async function findEmpreendimentoImovsByEmpreendimentoId(
+  env: Bindings,
+  empreendimentoId: number
+): Promise<EmpreendimentoDetailImovRow[]> {
+  return queryRows<EmpreendimentoDetailImovRow>(
+    env,
+    `
+      SELECT
+        i.id,
+        i.slug,
+        i.ref,
+        i.refinterna,
+        i.ref_secundary,
+        i.valor,
+        i.valor_site,
+        i.online,
+        ia.area_util_det,
+        d.name AS imovdisp_name,
+        d.pt AS imovdisp_pt,
+        d.en AS imovdisp_en,
+        d.es AS imovdisp_es,
+        d.fr AS imovdisp_fr,
+        d.de AS imovdisp_de,
+        n.pt AS imovnature_pt,
+        n.en AS imovnature_en,
+        n.es AS imovnature_es,
+        n.fr AS imovnature_fr,
+        n.de AS imovnature_de,
+        t.pt AS imovtn_pt,
+        t.en AS imovtn_en,
+        t.es AS imovtn_es,
+        t.fr AS imovtn_fr,
+        t.de AS imovtn_de
+      FROM imovs i
+      LEFT JOIN imovareas ia ON ia.imov_id = i.id
+      LEFT JOIN imovdisps d ON d.id = i.imovdisp_id
+      LEFT JOIN imovnatures n ON n.id = i.imovnature_id
+      LEFT JOIN imovtns t ON t.id = i.imovtn_id
+      WHERE i.empreendimento_id = ?
+        AND i.deleted_at IS NULL
+      ORDER BY i.id DESC
+    `,
+    [empreendimentoId]
   )
 }

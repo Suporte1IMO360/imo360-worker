@@ -17,6 +17,7 @@ import {
   getEmpreendimentosByHash,
   getEmpreendimentosConcelhosByHash,
   getEmpreendimentosDistritosByHash,
+  getEmpreendimentoDetailByHashes,
   getEmpreendimentosFreguesiasByHash
 } from '../services/empreendimentos.service'
 
@@ -186,6 +187,20 @@ router.get('/empreendimentos/:hash/freguesias', async (c) => {
   const url = new URL(c.req.url)
 
   const payload = await getEmpreendimentosFreguesiasByHash(c.env, hash, url.searchParams)
+
+  return c.json(payload)
+})
+
+router.get('/empreendimentos/:hash/preview/:hash2', async (c) => {
+  const hash = c.req.param('hash')
+  const hash2 = c.req.param('hash2')
+  const url = new URL(c.req.url)
+
+  const payload = await getEmpreendimentoDetailByHashes(c.env, hash, hash2, url.searchParams)
+
+  if (!payload) {
+    return c.json({ ok: false, error: 'not_found', message: 'Empreendimento nao encontrado.' }, 404)
+  }
 
   return c.json(payload)
 })

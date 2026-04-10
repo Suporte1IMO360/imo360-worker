@@ -1,9 +1,13 @@
 import type { Bindings } from '../types/env'
 import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
+  findEmpreendimentoDetailById,
+  findEmpreendimentoImovsByEmpreendimentoId,
   findEmpreendimentosConcelhosByAgencyIds,
   findEmpreendimentosDistritosByAgencyIds,
   findEmpreendimentosFreguesiasByAgencyIds,
+  type EmpreendimentoDetailImovRow,
+  type EmpreendimentoDetailRow,
   searchEmpreendimentosRows,
   type EmpreendimentoSearchRow
 } from '../repositories/website.repository'
@@ -32,6 +36,33 @@ type EmpreendimentosPaginated = {
   prev_page_url: string | null
   to: number | null
   total: number
+}
+
+type EmpreendimentoDetailImovPayload = {
+  external_id: string
+  slug: string | null
+  ref: string | null
+  title: string
+  disponibilidade: string
+  area_util: string
+  valor: string
+  sobconsulta: boolean
+  online: boolean
+}
+
+type EmpreendimentoDetailPayload = {
+  external: string
+  image: string
+  title: string
+  description: string
+  street: string
+  show_street: boolean
+  distrito: string
+  concelho: string
+  freguesia: string
+  longitude: string | null
+  latitude: string | null
+  imoveis: EmpreendimentoDetailImovPayload[]
 }
 
 const SPECIAL_MULTI_AGENCY_HASH_ID = 397
@@ -105,7 +136,10 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl
 }
 
-function resolveImageUrl(env: Bindings, row: EmpreendimentoSearchRow): string {
+function resolveImageUrl(
+  env: Bindings,
+  row: { image: string | null; imagepath: string | null }
+): string {
   const rawPath = row.imagepath || row.image
 
   if (!rawPath) {
@@ -143,6 +177,149 @@ function getLocalizedTitle(row: EmpreendimentoSearchRow, lang: SupportedLang): s
   }
 
   return row.title_pt || ''
+}
+
+function getLocalizedEmpreendimentoTitle(row: EmpreendimentoDetailRow, lang: SupportedLang): string {
+  if (lang === 'en' && row.title_en) {
+    return row.title_en
+  }
+
+  if (lang === 'es' && row.title_es) {
+    return row.title_es
+  }
+
+  if (lang === 'fr' && row.title_fr) {
+    return row.title_fr
+  }
+
+  if (lang === 'de' && row.title_de) {
+    return row.title_de
+  }
+
+  return row.title_pt || ''
+}
+
+function getLocalizedEmpreendimentoDescription(row: EmpreendimentoDetailRow, lang: SupportedLang): string {
+  if (lang === 'en' && row.description_en) {
+    return row.description_en
+  }
+
+  if (lang === 'es' && row.description_es) {
+    return row.description_es
+  }
+
+  if (lang === 'fr' && row.description_fr) {
+    return row.description_fr
+  }
+
+  if (lang === 'de' && row.description_de) {
+    return row.description_de
+  }
+
+  return row.description_pt || ''
+}
+
+function langValueFromImov(row: EmpreendimentoDetailImovRow, lang: SupportedLang, kind: 'disp' | 'nature' | 'tn'): string {
+  const fields = {
+    disp: {
+      pt: row.imovdisp_pt || row.imovdisp_name,
+      en: row.imovdisp_en,
+      es: row.imovdisp_es,
+      fr: row.imovdisp_fr,
+      de: row.imovdisp_de
+    },
+    nature: {
+      pt: row.imovnature_pt,
+      en: row.imovnature_en,
+      es: row.imovnature_es,
+      fr: row.imovnature_fr,
+      de: row.imovnature_de
+    },
+    tn: {
+      pt: row.imovtn_pt,
+      en: row.imovtn_en,
+      es: row.imovtn_es,
+      fr: row.imovtn_fr,
+      de: row.imovtn_de
+    }
+  }[kind]
+
+  if (lang === 'en' && fields.en) {
+    return fields.en
+  }
+
+  if (lang === 'es' && fields.es) {
+    return fields.es
+  }
+
+  if (lang === 'fr' && fields.fr) {
+    return fields.fr
+  }
+
+  if (lang === 'de' && fields.de) {
+    return fields.de
+  }
+
+  return fields.pt || ''
+}
+
+function formatMoney(value: string | null): string {
+  const parsed = Number(value || 0)
+
+  return `${new Intl.NumberFormat('pt-PT', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(Number.isFinite(parsed) ? parsed : 0)} €`
+}
+
+function formatAreaCompact(value: string | null): string {
+  if (value === null || value === undefined) {
+    return '0'
+  }
+
+  const parsed = Number(value)
+
+  if (!Number.isFinite(parsed)) {
+    return '0'
+  }
+
+  return new Intl.NumberFormat('pt-PT', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(parsed)
+}
+
+function resolveReference(row: EmpreendimentoDetailImovRow, typeReference: number | null): string | null {
+  if (typeReference === 3) {
+    return row.ref
+  }
+
+  if (typeReference === 2) {
+    return row.refinterna
+  }
+
+  return row.ref_secundary || row.ref || row.refinterna
+}
+
+function mapEmpreendimentoImovRow(
+  env: Bindings,
+  row: EmpreendimentoDetailImovRow,
+  lang: SupportedLang,
+  typeReference: number | null
+): EmpreendimentoDetailImovPayload {
+  const title = `${langValueFromImov(row, lang, 'tn')} ${langValueFromImov(row, lang, 'nature')}`.trim()
+
+  return {
+    external_id: encodeId(env, row.id),
+    slug: row.slug,
+    ref: resolveReference(row, typeReference),
+    title,
+    disponibilidade: langValueFromImov(row, lang, 'disp').toLocaleLowerCase('pt-PT'),
+    area_util: formatAreaCompact(row.area_util_det),
+    valor: formatMoney(row.valor),
+    sobconsulta: Number(row.valor_site || 0) !== 0,
+    online: Number(row.online || 0) === 1
+  }
 }
 
 function withPage(searchParams: URLSearchParams, page: number): string {
@@ -277,4 +454,43 @@ export async function getEmpreendimentosFreguesiasByHash(
 
     return acc
   }, {})
+}
+
+export async function getEmpreendimentoDetailByHashes(
+  env: Bindings,
+  agencyHash: string,
+  empreendimentoHash: string,
+  searchParams: URLSearchParams
+): Promise<EmpreendimentoDetailPayload | null> {
+  const lang = normalizeLang(searchParams.get('lang') || undefined)
+  const decodedAgencyId = decodeSingleHash(env, agencyHash)
+  const scopeIds = resolveScopeIds(decodedAgencyId)
+  const empreendimentoId = decodeSingleHash(env, empreendimentoHash)
+
+  const empreendimento = await findEmpreendimentoDetailById(env, empreendimentoId)
+
+  if (!empreendimento) {
+    return null
+  }
+
+  if (!scopeIds.includes(empreendimento.agencia_id)) {
+    return null
+  }
+
+  const imovs = await findEmpreendimentoImovsByEmpreendimentoId(env, empreendimentoId)
+
+  return {
+    external: empreendimentoHash,
+    image: resolveImageUrl(env, empreendimento),
+    title: getLocalizedEmpreendimentoTitle(empreendimento, lang),
+    description: getLocalizedEmpreendimentoDescription(empreendimento, lang),
+    street: empreendimento.morada || '',
+    show_street: Number(empreendimento.online_street) === 1,
+    distrito: empreendimento.distrito_id ? titleCase(empreendimento.distrito_name) : '',
+    concelho: empreendimento.concelho_id ? titleCase(empreendimento.concelho_name) : '',
+    freguesia: empreendimento.freguesia_id ? titleCase(empreendimento.freguesia_name) : '',
+    longitude: empreendimento.longitude,
+    latitude: empreendimento.latitude,
+    imoveis: imovs.map((row) => mapEmpreendimentoImovRow(env, row, lang, empreendimento.typereferenceimovs))
+  }
 }
