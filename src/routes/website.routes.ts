@@ -18,7 +18,8 @@ import {
   getEmpreendimentosConcelhosByHash,
   getEmpreendimentosDistritosByHash,
   getEmpreendimentoDetailByHashes,
-  getEmpreendimentosFreguesiasByHash
+  getEmpreendimentosFreguesiasByHash,
+  submitEmpreendimentoContactByHash
 } from '../services/empreendimentos.service'
 
 const router = new Hono<AppEnv>()
@@ -203,6 +204,25 @@ router.get('/empreendimentos/:hash/preview/:hash2', async (c) => {
   }
 
   return c.json(payload)
+})
+
+router.post('/empreendimentos/:hash/contact', async (c) => {
+  const hash = c.req.param('hash')
+  const contentType = c.req.header('content-type') || ''
+
+  let payload: Record<string, unknown> = {}
+
+  if (contentType.includes('application/json')) {
+    const parsed = await c.req.json<Record<string, unknown>>()
+    payload = parsed || {}
+  } else {
+    const parsed = await c.req.parseBody()
+    payload = Object.fromEntries(Object.entries(parsed))
+  }
+
+  const result = await submitEmpreendimentoContactByHash(c.env, hash, payload)
+
+  return c.json(result.body, result.status as 200 | 400)
 })
 
 export default router

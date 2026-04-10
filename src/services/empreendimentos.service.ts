@@ -1,11 +1,14 @@
 import type { Bindings } from '../types/env'
 import { decodeSingleHash, encodeId } from '../utils/hashid'
 import {
+  createEmpreendimentoLead,
   findEmpreendimentoDetailById,
+  findEmpreendimentoAgencyById,
   findEmpreendimentoImovsByEmpreendimentoId,
   findEmpreendimentosConcelhosByAgencyIds,
   findEmpreendimentosDistritosByAgencyIds,
   findEmpreendimentosFreguesiasByAgencyIds,
+  findMaxLeadNumByAgencyId,
   type EmpreendimentoDetailImovRow,
   type EmpreendimentoDetailRow,
   searchEmpreendimentosRows,
@@ -492,5 +495,88 @@ export async function getEmpreendimentoDetailByHashes(
     longitude: empreendimento.longitude,
     latitude: empreendimento.latitude,
     imoveis: imovs.map((row) => mapEmpreendimentoImovRow(env, row, lang, empreendimento.typereferenceimovs))
+  }
+}
+
+function asNullableString(value: unknown): string | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  const text = String(value).trim()
+  return text === '' ? null : text
+}
+
+function isFilled(value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return false
+  }
+
+  return String(value).trim() !== ''
+}
+
+function nowDateAndHour(): { date: string; hour: string } {
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+  const hh = String(now.getHours()).padStart(2, '0')
+  const min = String(now.getMinutes()).padStart(2, '0')
+
+  return {
+    date: `${yyyy}-${mm}-${dd}`,
+    hour: `${hh}:${min}`
+  }
+}
+
+export async function submitEmpreendimentoContactByHash(
+  env: Bindings,
+  empreendimentoHash: string,
+  payload: Record<string, unknown>
+): Promise<{ status: number; body: Record<string, unknown> }> {
+  try {
+    if (!isFilled(payload.declaration)) {
+      return {
+        status: 400,
+        body: { status: 400 }
+      }
+    }
+
+    const empreendimentoId = decodeSingleHash(env, empreendimentoHash)
+    const empreendimento = await findEmpreendimentoAgencyById(env, empreendimentoId)
+
+    if (!empreendimento) {
+      return {
+        status: 400,
+        body: { status: 400 }
+      }
+    }
+
+    const ultimoNumLead = await findMaxLeadNumByAgencyId(env, empreendimento.agencia_id)
+    const { date, hour } = nowDateAndHour()
+
+    await createEmpreendimentoLead(env, {
+      numLead: ultimoNumLead + 1,
+      data_inicio: date,
+      hora_inicio: hour,
+      mensagem_lead: asNullableString(payload.mensagem),
+      email_lead: asNullableString(payload.email),
+      contacto_lead: asNullableString(payload.phone),
+      pessoa_lead: asNullableString(payload.name),
+      agencia_id: empreendimento.agencia_id
+    })
+
+    return {
+      status: 200,
+      body: {
+        message: 'Formulário enviado com sucesso',
+        status: 200
+      }
+    }
+  } catch {
+    return {
+      status: 400,
+      body: { status: 400 }
+    }
   }
 }

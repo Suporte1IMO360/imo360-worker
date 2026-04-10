@@ -1,4 +1,4 @@
-import type { RowDataPacket } from 'mysql2/promise'
+import type { ResultSetHeader, RowDataPacket } from 'mysql2/promise'
 import { getConnection } from '../utils/db'
 import type { Bindings } from '../types/env'
 
@@ -306,6 +306,15 @@ export type EmpreendimentoDistritoRow = RowDataPacket & {
   name: string | null
 }
 
+type EmpreendimentoAgencyRow = RowDataPacket & {
+  id: number
+  agencia_id: number
+}
+
+type LeadMaxRow = RowDataPacket & {
+  maxNumLead: number | null
+}
+
 async function querySingleRow<T extends RowDataPacket>(
   env: Bindings,
   sql: string,
@@ -353,6 +362,32 @@ async function queryRows<T extends RowDataPacket>(
 
     const [rows] = await run.call(client, sql, params)
     return rows
+  } finally {
+    await connection.end()
+  }
+}
+
+async function executeStatement(
+  env: Bindings,
+  sql: string,
+  params: QueryParams
+): Promise<ResultSetHeader> {
+  const connection = await getConnection(env)
+
+  try {
+    const client = connection as unknown as {
+      execute?: (statement: string, values: QueryParams) => Promise<[ResultSetHeader]>
+      query?: (statement: string, values: QueryParams) => Promise<[ResultSetHeader]>
+    }
+
+    const run = client.query ?? client.execute
+
+    if (!run) {
+      throw new Error('Unsupported MySQL connection client')
+    }
+
+    const [result] = await run.call(client, sql, params)
+    return result
   } finally {
     await connection.end()
   }
@@ -1299,4 +1334,81 @@ export async function findEmpreendimentoImovsByEmpreendimentoId(
     `,
     [empreendimentoId]
   )
+}
+
+export async function findEmpreendimentoAgencyById(
+  env: Bindings,
+  empreendimentoId: number
+): Promise<EmpreendimentoAgencyRow | null> {
+  return querySingleRow<EmpreendimentoAgencyRow>(
+    env,
+    `
+      SELECT e.id, e.agencia_id
+      FROM empreendimentos e
+      WHERE e.id = ?
+      LIMIT 1
+    `,
+    [empreendimentoId]
+  )
+}
+
+export async function findMaxLeadNumByAgencyId(env: Bindings, agenciaId: number): Promise<number> {
+  const row = await querySingleRow<LeadMaxRow>(
+    env,
+    `
+      SELECT MAX(l.numLead) AS maxNumLead
+      FROM leads l
+      WHERE l.agencia_id = ?
+    `,
+    [agenciaId]
+  )
+
+  return Number(row?.maxNumLead || 0)
+}
+
+export async function createEmpreendimentoLead(
+  env: Bindings,
+  input: {
+    numLead: number
+    data_inicio: string
+    hora_inicio: string
+    mensagem_lead: string | null
+    email_lead: string | null
+    contacto_lead: string | null
+    pessoa_lead: string | null
+    agencia_id: number
+  }
+): Promise<number> {
+  const result = await executeStatement(
+    env,
+    `
+      INSERT INTO leads (
+        numLead,
+        data_inicio,
+        hora_inicio,
+        imovorisub_id,
+        mensagem_lead,
+        email_lead,
+        contacto_lead,
+        pessoa_lead,
+        agencia_id,
+        colaborador_id,
+        comprar,
+        created_at,
+        updated_at
+      ) VALUES (?, ?, ?, 29, ?, ?, ?, ?, ?, NULL, 1, NOW(), NOW())
+    `,
+    [
+      input.numLead,
+      input.data_inicio,
+      input.hora_inicio,
+      input.mensagem_lead,
+      input.email_lead,
+      input.contacto_lead,
+      input.pessoa_lead,
+      input.agencia_id
+    ]
+  )
+
+  return Number(result.insertId || 0)
 }
