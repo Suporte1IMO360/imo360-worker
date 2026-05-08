@@ -38,5 +38,5 @@
     "traces": {
       "enabled": false
     }
-  }
+  },"env": {"arys":{"name":"arys-worker"}}
 }
