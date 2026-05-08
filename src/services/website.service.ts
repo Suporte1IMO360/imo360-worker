@@ -184,6 +184,32 @@ export function resolveWebsiteFileUrl(
   return makeFileUrl(env, value, agencyId, hash)
 }
 
+export function resolveUserFileUrl(env: Bindings, value: unknown, hash: string): string | null {
+  const raw = asNullableString(value)
+
+  if (!raw) {
+    return null
+  }
+
+  if (/^https?:\/\//i.test(raw)) {
+    return raw
+  }
+
+  const normalizedRaw = normalizePath(raw)
+  const basePath = `users/${normalizePath(hash)}/imagens`
+  const fullPath = normalizedRaw.startsWith(`${basePath}/`) ? normalizedRaw : `${basePath}/${normalizedRaw}`
+
+  if (asBooleanString(env.USE_CLOUDFLARE_IMAGES)) {
+    const cloudflareUrl = cloudflarePathUrl(env, fullPath)
+
+    if (cloudflareUrl) {
+      return cloudflareUrl
+    }
+  }
+
+  return `${normalizeBaseUrl(env.URL_IMO360)}/${fullPath}`
+}
+
 export function resolveImovelFileUrl(
   env: Bindings,
   filename: unknown,

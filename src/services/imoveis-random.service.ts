@@ -10,7 +10,7 @@ import {
   findUserReferencePreferenceByAgencyId,
   type ImovelRandomRow
 } from '../repositories/imoveis.repository'
-import { resolveImovelFileUrl, resolveWebsiteFileUrl } from './website.service'
+import { resolveImovelFileUrl, resolveUserFileUrl } from './website.service'
 
 type SupportedLang = 'pt' | 'en' | 'es' | 'fr' | 'de'
 
@@ -329,8 +329,8 @@ function mapRowsToPayload(
     const consultantName = hideConsultantInfo ? row.agencia_name : row.colaborador_name
     const consultantEmail = hideConsultantInfo ? row.agencia_email : row.colaborador_email
     const consultantPhotoRaw = hideConsultantInfo ? row.agencia_foto : row.colaborador_foto
-    const consultantPhoto =
-      resolveWebsiteFileUrl(env, consultantPhotoRaw, row.agencia_id, agencyHash) || profileFallback(env)
+    const consultantHash = encodeId(env, consultantId)
+    const consultantPhoto = resolveUserFileUrl(env, consultantPhotoRaw, consultantHash) || profileFallback(env)
 
     const images = parseImages(row.images)
     const imageFile = resolveImageFile(images)
@@ -702,8 +702,8 @@ function mapSearchRowToPayload(
   const consultantName = hideConsultantInfo ? row.agencia_name : row.colaborador_name
   const consultantEmail = hideConsultantInfo ? row.agencia_email : row.colaborador_email
   const consultantPhotoRaw = hideConsultantInfo ? row.agencia_foto : row.colaborador_foto
-  const consultantPhoto =
-    resolveWebsiteFileUrl(env, consultantPhotoRaw, row.agencia_id, agencyHash) || profileFallback(env)
+  const consultantHash = encodeId(env, consultantId)
+  const consultantPhoto = resolveUserFileUrl(env, consultantPhotoRaw, consultantHash) || profileFallback(env)
 
   const images = parseImages(row.images)
   const imageFile = resolveImageFile(images)

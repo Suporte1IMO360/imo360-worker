@@ -45,6 +45,9 @@ type EmpreendimentoDetailImovPayload = {
   external_id: string
   slug: string | null
   ref: string | null
+  floor: string | null
+  fraccao: string | null
+  fraction: string | null
   title: string
   disponibilidade: string
   area_util: string
@@ -145,7 +148,7 @@ function normalizePath(path: string): string {
 
 function buildEmpreendimentoImagePath(
   env: Bindings,
-  row: { id: number; image: string | null; agency_defaultpath: string | null }
+  row: { id: number; agencia_id: number; image: string | null }
 ): string | null {
   const imageFile = row.image ? row.image.trim() : ''
 
@@ -153,17 +156,17 @@ function buildEmpreendimentoImagePath(
     return null
   }
 
-  const defaultPrefix = normalizePath(row.agency_defaultpath || '')
+  const agencyHash = encodeId(env, row.agencia_id)
   const empreendimentoHash = encodeId(env, row.id)
 
-  return [defaultPrefix, 'empreendimento', empreendimentoHash, normalizePath(imageFile)]
+  return ['users', agencyHash, 'empreendimento', empreendimentoHash, normalizePath(imageFile)]
     .filter((part) => part.length > 0)
     .join('/')
 }
 
 function resolveImageUrl(
   env: Bindings,
-  row: { id: number; image: string | null; imagepath: string | null; agency_defaultpath: string | null }
+  row: { id: number; agencia_id: number; image: string | null; imagepath: string | null }
 ): string {
   const rawPath = row.imagepath || row.image
 
@@ -334,6 +337,42 @@ function resolveReference(row: EmpreendimentoDetailImovRow, typeReference: numbe
   return row.ref_secundary || row.ref || row.refinterna
 }
 
+function asNullableTrimmedString(value: string | null | undefined): string | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  const trimmed = value.trim()
+  return trimmed === '' ? null : trimmed
+}
+
+function formatFloorLikeLaravel(value: string | null | undefined): string | null {
+  const floor = asNullableTrimmedString(value)
+
+  if (!floor) {
+    return null
+  }
+
+  switch (floor.toLowerCase()) {
+    case 'ss':
+      return 'Semi-cave'
+    case 'st':
+      return 'Cave'
+    case '-2':
+      return '-2'
+    case '-1':
+      return '-1'
+    case 'r/c':
+    case 'rc':
+    case '0':
+      return 'R/C'
+    case 'outro':
+      return 'Outro'
+    default:
+      return floor
+  }
+}
+
 function mapEmpreendimentoImovRow(
   env: Bindings,
   row: EmpreendimentoDetailImovRow,
@@ -346,6 +385,9 @@ function mapEmpreendimentoImovRow(
     external_id: encodeId(env, row.id),
     slug: row.slug,
     ref: resolveReference(row, typeReference),
+    floor: formatFloorLikeLaravel(row.floor_raw),
+    fraccao: asNullableTrimmedString(row.fraction_raw),
+    fraction: asNullableTrimmedString(row.fraction_raw),
     title,
     disponibilidade: langValueFromImov(row, lang, 'disp').toLocaleLowerCase('pt-PT'),
     area_util: formatAreaCompact(row.area_util_det),
@@ -545,6 +587,54 @@ function isFilled(value: unknown): boolean {
   return String(value).trim() !== ''
 }
 
+function toNormalizedString(value: unknown, maxLength: number): string | null {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  const text = String(value).replace(/\s+/g, ' ').trim()
+
+  if (text === '') {
+    return null
+  }
+
+  return text.slice(0, maxLength)
+}
+
+function isTruthyDeclaration(value: unknown): boolean {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'number') {
+    return value === 1
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    return normalized === '1' || normalized === 'true' || normalized === 'on' || normalized === 'yes'
+  }
+
+  return false
+}
+
+function isValidEmail(value: string | null): boolean {
+  if (!value) {
+    return false
+  }
+
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+function isValidPhone(value: string | null): boolean {
+  if (!value) {
+    return false
+  }
+
+  const compact = value.replace(/\s+/g, '')
+  return /^[+]?[-()\d]{6,20}$/.test(compact)
+}
+
 function nowDateAndHour(): { date: string; hour: string } {
   const now = new Date()
   const yyyy = now.getFullYear()
@@ -565,10 +655,43 @@ export async function submitEmpreendimentoContactByHash(
   payload: Record<string, unknown>
 ): Promise<{ status: number; body: Record<string, unknown> }> {
   try {
-    if (!isFilled(payload.declaration)) {
+    if (!isTruthyDeclaration(payload.declaration)) {
       return {
         status: 400,
-        body: { status: 400 }
+        body: { status: 400, message: 'Declaracao obrigatoria.' }
+      }
+    }
+
+    const nome = toNormalizedString(payload.name, 120)
+    const email = toNormalizedString(payload.email, 200)
+    const phone = toNormalizedString(payload.phone, 30)
+    const mensagem = toNormalizedString(payload.mensagem, 3000)
+
+    if (!nome) {
+      return {
+        status: 400,
+        body: { status: 400, message: 'Nome obrigatorio.' }
+      }
+    }
+
+    if (!email && !phone) {
+      return {
+        status: 400,
+        body: { status: 400, message: 'Email ou telefone obrigatorio.' }
+      }
+    }
+
+    if (email && !isValidEmail(email)) {
+      return {
+        status: 400,
+        body: { status: 400, message: 'Email invalido.' }
+      }
+    }
+
+    if (phone && !isValidPhone(phone)) {
+      return {
+        status: 400,
+        body: { status: 400, message: 'Telefone invalido.' }
       }
     }
 
@@ -589,10 +712,10 @@ export async function submitEmpreendimentoContactByHash(
       numLead: ultimoNumLead + 1,
       data_inicio: date,
       hora_inicio: hour,
-      mensagem_lead: asNullableString(payload.mensagem),
-      email_lead: asNullableString(payload.email),
-      contacto_lead: asNullableString(payload.phone),
-      pessoa_lead: asNullableString(payload.name),
+      mensagem_lead: mensagem,
+      email_lead: email,
+      contacto_lead: phone,
+      pessoa_lead: nome,
       agencia_id: empreendimento.agencia_id
     })
 

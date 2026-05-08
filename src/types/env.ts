@@ -21,4 +21,7 @@ export type Bindings = {
 
 export type AppEnv = {
   Bindings: Bindings
+  Variables: {
+    requestId: string
+  }
 }

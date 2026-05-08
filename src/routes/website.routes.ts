@@ -31,6 +31,7 @@ import { getTestimonialsByHash } from '../services/testimonials.service'
 import { getPrivacyPolicyByHash } from '../services/privacy-policy.service'
 
 const router = new Hono<AppEnv>()
+const CONTACT_MAX_PAYLOAD_BYTES = 32 * 1024
 
 router.get('/website/:hash/homepage/blocks', async (c) => {
   const hash = c.req.param('hash')
@@ -217,15 +218,38 @@ router.get('/empreendimentos/:hash/preview/:hash2', async (c) => {
 router.post('/empreendimentos/:hash/contact', async (c) => {
   const hash = c.req.param('hash')
   const contentType = c.req.header('content-type') || ''
+  const contentLength = Number(c.req.header('content-length') || '0')
+
+  if (Number.isFinite(contentLength) && contentLength > CONTACT_MAX_PAYLOAD_BYTES) {
+    return c.json(
+      {
+        ok: false,
+        error: 'payload_too_large',
+        message: 'Payload demasiado grande.'
+      },
+      413
+    )
+  }
 
   let payload: Record<string, unknown> = {}
 
-  if (contentType.includes('application/json')) {
-    const parsed = await c.req.json<Record<string, unknown>>()
-    payload = parsed || {}
-  } else {
-    const parsed = await c.req.parseBody()
-    payload = Object.fromEntries(Object.entries(parsed))
+  try {
+    if (contentType.includes('application/json')) {
+      const parsed = await c.req.json<Record<string, unknown>>()
+      payload = parsed || {}
+    } else {
+      const parsed = await c.req.parseBody()
+      payload = Object.fromEntries(Object.entries(parsed))
+    }
+  } catch {
+    return c.json(
+      {
+        ok: false,
+        error: 'invalid_payload',
+        message: 'Payload invalido.'
+      },
+      400
+    )
   }
 
   const result = await submitEmpreendimentoContactByHash(c.env, hash, payload)

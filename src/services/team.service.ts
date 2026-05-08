@@ -8,7 +8,7 @@ import {
   type TeamConsultantRow,
   type TeamMemberRow
 } from '../repositories/website.repository'
-import { resolveWebsiteFileUrl } from './website.service'
+import { resolveUserFileUrl } from './website.service'
 
 type SupportedLang = 'pt' | 'en' | 'es' | 'fr' | 'de'
 
@@ -173,8 +173,8 @@ function resolvePhoto(env: Bindings, row: TeamMemberRow): string {
     return profileFallback(env)
   }
 
-  const agencyHash = encodeId(env, row.agencia_id)
-  return resolveWebsiteFileUrl(env, row.foto, row.agencia_id, agencyHash) || profileFallback(env)
+  const userHash = encodeId(env, row.id)
+  return resolveUserFileUrl(env, row.foto, userHash) || profileFallback(env)
 }
 
 function resolveTitle(row: TeamMemberRow, consultantTitle: string): string {

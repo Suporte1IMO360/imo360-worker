@@ -297,6 +297,8 @@ export type EmpreendimentoDetailImovRow = RowDataPacket & {
   imovtn_es: string | null
   imovtn_fr: string | null
   imovtn_de: string | null
+  floor_raw: string | null
+  fraction_raw: string | null
 }
 
 type EmpreendimentoSearchCountRow = RowDataPacket & {
@@ -382,6 +384,58 @@ type LeadMaxRow = RowDataPacket & {
 
 type ArticleSearchCountRow = RowDataPacket & {
   total: number
+}
+
+const EMPREENDIMENTO_INFO_TABLE_CANDIDATES = [
+  'empreendimento_infos',
+  'empreendimento_info',
+  'empreendimentoinfos',
+  'empreendimentoinfo'
+] as const
+
+let empreendimentoInfoTableCache: string | null | undefined
+let imovsColumnsCache: Set<string> | undefined
+
+function isNoSuchTableError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false
+  }
+
+  const maybeCode = (error as { code?: string }).code
+  const maybeMessage = (error as { message?: string }).message || ''
+
+  return maybeCode === 'ER_NO_SUCH_TABLE' || maybeMessage.includes("doesn't exist")
+}
+
+async function resolveEmpreendimentoInfoTable(env: Bindings): Promise<string | null> {
+  if (empreendimentoInfoTableCache !== undefined) {
+    return empreendimentoInfoTableCache
+  }
+
+  for (const tableName of EMPREENDIMENTO_INFO_TABLE_CANDIDATES) {
+    try {
+      await queryRows<RowDataPacket>(env, `SELECT 1 FROM ${tableName} LIMIT 1`, [])
+      empreendimentoInfoTableCache = tableName
+      return tableName
+    } catch (error) {
+      if (!isNoSuchTableError(error)) {
+        throw error
+      }
+    }
+  }
+
+  empreendimentoInfoTableCache = null
+  return null
+}
+
+async function resolveImovsColumns(env: Bindings): Promise<Set<string>> {
+  if (imovsColumnsCache) {
+    return imovsColumnsCache
+  }
+
+  const rows = await queryRows<RowDataPacket & { Field: string }>(env, 'SHOW COLUMNS FROM imovs', [])
+  imovsColumnsCache = new Set(rows.map((row) => row.Field.toLowerCase()))
+  return imovsColumnsCache
 }
 
 async function querySingleRow<T extends RowDataPacket>(
@@ -856,20 +910,28 @@ export async function findConsultantRealestateTranslation(
   env: Bindings,
   locale: 'pt' | 'en' | 'es' | 'fr' | 'de'
 ): Promise<string | null> {
-  const row = await querySingleRow<RowDataPacket & { value: string | null }>(
-    env,
-    `
-      SELECT t.value
-      FROM translations t
-      WHERE t.locale = ?
-        AND t.key = 'Consultant_realestate'
-        AND t.\`group\` = 'app'
-      LIMIT 1
-    `,
-    [locale]
-  )
+  try {
+    const row = await querySingleRow<RowDataPacket & { value: string | null }>(
+      env,
+      `
+        SELECT t.value
+        FROM translations t
+        WHERE t.locale = ?
+          AND t.key = 'Consultant_realestate'
+          AND t.\`group\` = 'app'
+        LIMIT 1
+      `,
+      [locale]
+    )
 
-  return row?.value ?? null
+    return row?.value ?? null
+  } catch (error) {
+    if (isNoSuchTableError(error)) {
+      return null
+    }
+
+    throw error
+  }
 }
 
 export async function findTeamMembersByAgencyIds(
@@ -1093,6 +1155,8 @@ export async function searchEmpreendimentosRows(
     return { rows: [], total: 0 }
   }
 
+  const infoTable = await resolveEmpreendimentoInfoTable(env)
+
   const scopeSql = placeholders(filters.scopeIds)
   const where: string[] = [
     `e.agencia_id IN (${scopeSql})`,
@@ -1116,14 +1180,22 @@ export async function searchEmpreendimentosRows(
   }
 
   if (filters.text && filters.text.trim() !== '') {
-    where.push(`(
+    const textConditions: string[] = []
+    const query = `%${filters.text.trim()}%`
+
+    if (infoTable) {
+      textConditions.push(`
       EXISTS (
         SELECT 1
-        FROM empreendimento_infos ei_t
+        FROM ${infoTable} ei_t
         WHERE ei_t.empreendimento_id = e.id
           AND ei_t.title_pt LIKE ?
-      )
-      OR EXISTS (
+      )`)
+      params.push(query)
+    }
+
+    textConditions.push(`
+      EXISTS (
         SELECT 1
         FROM imovs i_t
         WHERE i_t.empreendimento_id = e.id
@@ -1132,10 +1204,11 @@ export async function searchEmpreendimentosRows(
             OR i_t.refinterna LIKE ?
             OR i_t.ref_secundary LIKE ?
           )
-      )
+      )`)
+    params.push(query, query, query)
+
+    where.push(`(${textConditions.join('\n      OR')}
     )`)
-    const query = `%${filters.text.trim()}%`
-    params.push(query, query, query, query)
   }
 
   const whereSql = where.length > 0 ? `WHERE ${where.join('\n      AND ')}` : ''
@@ -1159,12 +1232,26 @@ export async function searchEmpreendimentosRows(
       break
   }
 
+  const infoJoinSql = infoTable ? `LEFT JOIN ${infoTable} ei ON ei.empreendimento_id = e.id` : ''
+  const infoSelectSql = infoTable
+    ? `
+      ei.title_pt,
+      ei.title_en,
+      ei.title_es,
+      ei.title_fr,
+      ei.title_de,`
+    : `
+      NULL AS title_pt,
+      NULL AS title_en,
+      NULL AS title_es,
+      NULL AS title_fr,
+      NULL AS title_de,`
+
   const fromSql = `
-    FROM empreendimentos e
-    LEFT JOIN empreendimento_infos ei ON ei.empreendimento_id = e.id
+    FROM empreendimento e
+    ${infoJoinSql}
     LEFT JOIN concelhos co ON co.id = e.concelho_id
     LEFT JOIN freguesias fr ON fr.id = e.freguesia_id
-    LEFT JOIN users ag ON ag.id = e.agencia_id
     ${whereSql}
   `
 
@@ -1184,14 +1271,10 @@ export async function searchEmpreendimentosRows(
     SELECT
       e.id,
       e.agencia_id,
-      ag.defaultpath AS agency_defaultpath,
+      NULL AS agency_defaultpath,
       e.image,
-      e.imagepath,
-      ei.title_pt,
-      ei.title_en,
-      ei.title_es,
-      ei.title_fr,
-      ei.title_de,
+      NULL AS imagepath,
+      ${infoSelectSql}
       e.concelho_id,
       e.freguesia_id,
       co.name AS concelho_name,
@@ -1230,7 +1313,7 @@ export async function findEmpreendimentosDistritosByAgencyIds(
       FROM distritos d
       WHERE d.id IN (
         SELECT e.distrito_id
-        FROM empreendimentos e
+        FROM empreendimento e
         WHERE e.agencia_id IN (${scopeSql})
           AND e.online = 1
           AND e.distrito_id IS NOT NULL
@@ -1266,7 +1349,7 @@ export async function findEmpreendimentosConcelhosByAgencyIds(
       FROM concelhos c
       WHERE c.id IN (
         SELECT e.concelho_id
-        FROM empreendimentos e
+        FROM empreendimento e
         WHERE e.agencia_id IN (${scopeSql})
           AND e.online = 1
           AND e.concelho_id IS NOT NULL
@@ -1303,7 +1386,7 @@ export async function findEmpreendimentosFreguesiasByAgencyIds(
       FROM freguesias f
       WHERE f.id IN (
         SELECT e.freguesia_id
-        FROM empreendimentos e
+        FROM empreendimento e
         WHERE e.agencia_id IN (${scopeSql})
           AND e.online = 1
           AND e.freguesia_id IS NOT NULL
@@ -1319,15 +1402,41 @@ export async function findEmpreendimentoDetailById(
   env: Bindings,
   empreendimentoId: number
 ): Promise<EmpreendimentoDetailRow | null> {
+  const infoTable = await resolveEmpreendimentoInfoTable(env)
+  const infoJoinSql = infoTable ? `LEFT JOIN ${infoTable} ei ON ei.empreendimento_id = e.id` : ''
+  const infoSelectSql = infoTable
+    ? `
+        ei.title_pt,
+        ei.title_en,
+        ei.title_es,
+        ei.title_fr,
+        ei.title_de,
+        ei.description_pt,
+        ei.description_en,
+        ei.description_es,
+        ei.description_fr,
+        ei.description_de,`
+    : `
+        NULL AS title_pt,
+        NULL AS title_en,
+        NULL AS title_es,
+        NULL AS title_fr,
+        NULL AS title_de,
+        NULL AS description_pt,
+        NULL AS description_en,
+        NULL AS description_es,
+        NULL AS description_fr,
+        NULL AS description_de,`
+
   return querySingleRow<EmpreendimentoDetailRow>(
     env,
     `
       SELECT
         e.id,
         e.agencia_id,
-        ag.defaultpath AS agency_defaultpath,
+        NULL AS agency_defaultpath,
         e.image,
-        e.imagepath,
+        NULL AS imagepath,
         e.morada,
         e.online_street,
         e.longitude,
@@ -1338,19 +1447,10 @@ export async function findEmpreendimentoDetailById(
         d.name AS distrito_name,
         co.name AS concelho_name,
         fr.name AS freguesia_name,
-        ei.title_pt,
-        ei.title_en,
-        ei.title_es,
-        ei.title_fr,
-        ei.title_de,
-        ei.description_pt,
-        ei.description_en,
-        ei.description_es,
-        ei.description_fr,
-        ei.description_de,
+        ${infoSelectSql}
         ag.typereferenceimovs
-      FROM empreendimentos e
-      LEFT JOIN empreendimento_infos ei ON ei.empreendimento_id = e.id
+      FROM empreendimento e
+      ${infoJoinSql}
       LEFT JOIN distritos d ON d.id = e.distrito_id
       LEFT JOIN concelhos co ON co.id = e.concelho_id
       LEFT JOIN freguesias fr ON fr.id = e.freguesia_id
@@ -1366,6 +1466,29 @@ export async function findEmpreendimentoImovsByEmpreendimentoId(
   env: Bindings,
   empreendimentoId: number
 ): Promise<EmpreendimentoDetailImovRow[]> {
+  const columns = await resolveImovsColumns(env)
+  const hasFloor = columns.has('floor')
+  const hasAndar = columns.has('andar')
+  const hasFraction = columns.has('fraction')
+  const hasFracao = columns.has('fracao')
+  const hasFraccao = columns.has('fraccao')
+
+  const floorSelect = hasFloor && hasAndar
+    ? "COALESCE(NULLIF(TRIM(i.`floor`), ''), NULLIF(TRIM(i.`andar`), '')) AS floor_raw"
+    : hasFloor
+      ? 'i.`floor` AS floor_raw'
+      : hasAndar
+        ? 'i.`andar` AS floor_raw'
+        : 'NULL AS floor_raw'
+
+  const fractionSelect = hasFraction
+    ? 'i.`fraction` AS fraction_raw'
+    : hasFraccao
+      ? 'i.`fraccao` AS fraction_raw'
+      : hasFracao
+        ? 'i.`fracao` AS fraction_raw'
+        : 'NULL AS fraction_raw'
+
   return queryRows<EmpreendimentoDetailImovRow>(
     env,
     `
@@ -1394,7 +1517,9 @@ export async function findEmpreendimentoImovsByEmpreendimentoId(
         t.en AS imovtn_en,
         t.es AS imovtn_es,
         t.fr AS imovtn_fr,
-        t.de AS imovtn_de
+        t.de AS imovtn_de,
+        ${floorSelect},
+        ${fractionSelect}
       FROM imovs i
       LEFT JOIN imovareas ia ON ia.imov_id = i.id
       LEFT JOIN imovdisps d ON d.id = i.imovdisp_id
@@ -1416,7 +1541,7 @@ export async function findEmpreendimentoAgencyById(
     env,
     `
       SELECT e.id, e.agencia_id
-      FROM empreendimentos e
+      FROM empreendimento e
       WHERE e.id = ?
       LIMIT 1
     `,
