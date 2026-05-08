@@ -62,7 +62,7 @@
       ]
     },
     "arys": {
-      "name": "arys-api",
+      "name": "arys-worker",
       "vars": {
         "APP_ENV": "production",
         "URL_IMO360": "https://arys.imo360.pt",
@@ -85,8 +85,7 @@
       "hyperdrive": [
         {
           "binding": "HYPERDRIVE",
-          // TODO: substituir pelo Hyperdrive ID real do projeto ARYS
-          "id": "00000000000000000000000000000000",
+          "id": "2dbd943a21314482b177ed4dcc6435f4",
           // Opcional para desenvolvimento local sem --remote
           "localConnectionString": "mysql://imo360_9ymT24p4rvfmZLme:40APv5iN1K0qrm2mGfMoT5lNq68ot8@162.19.231.65:3306/imo360_7gij4qQj0gi3sqh75KSFH50k6"
         }
