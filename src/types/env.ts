@@ -5,6 +5,8 @@ export type Bindings = {
   USE_CLOUDFLARE_IMAGES?: string
   CF_IMAGES_BASE_URL?: string
   CF_IMAGES_VARIANT?: string
+  USER_IMAGE_PATH_TEMPLATE?: string
+  EMPREENDIMENTO_IMAGE_PATH_TEMPLATE?: string
   WEBSITE_DEFAULT_PATH?: string
   IMOVEL_DEFAULT_PATH?: string
   HASHIDS_SALT: string

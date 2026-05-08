@@ -50,6 +50,17 @@ function normalizePath(path: string): string {
   return path.replace(/^\/+|\/+$/g, '')
 }
 
+function applyPathTemplate(template: string, values: Record<string, string>): string {
+  let resolved = template
+
+  for (const [key, value] of Object.entries(values)) {
+    const regex = new RegExp(`\\{${key}\\}`, 'gi')
+    resolved = resolved.replace(regex, value)
+  }
+
+  return resolved
+}
+
 function asBooleanString(value: string | undefined): boolean {
   if (!value) {
     return false
@@ -196,8 +207,16 @@ export function resolveUserFileUrl(env: Bindings, value: unknown, hash: string):
   }
 
   const normalizedRaw = normalizePath(raw)
-  const basePath = `users/${normalizePath(hash)}/imagens`
-  const fullPath = normalizedRaw.startsWith(`${basePath}/`) ? normalizedRaw : `${basePath}/${normalizedRaw}`
+  const userHash = normalizePath(hash)
+  const template = env.USER_IMAGE_PATH_TEMPLATE || 'users/{user_hash}/imagens/{file}'
+  const templatePath = normalizePath(
+    applyPathTemplate(template, {
+      hash: userHash,
+      user_hash: userHash,
+      file: normalizedRaw
+    })
+  )
+  const fullPath = normalizedRaw.startsWith('users/') ? normalizedRaw : templatePath
 
   if (asBooleanString(env.USE_CLOUDFLARE_IMAGES)) {
     const cloudflareUrl = cloudflarePathUrl(env, fullPath)

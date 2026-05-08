@@ -15,6 +15,29 @@ USE_CLOUDFLARE_IMAGES=true
 CF_IMAGES_BASE_URL=https://images.crm360.pt
 CF_IMAGES_VARIANT=public
 
+# Path templates for multi-project image structures (optional)
+# Available placeholders:
+# {hash}, {user_hash}, {agency_hash}, {agency_id}, {empreendimento_hash}, {file}
+USER_IMAGE_PATH_TEMPLATE=users/{user_hash}/imagens/{file}
+EMPREENDIMENTO_IMAGE_PATH_TEMPLATE=users/{agency_hash}/empreendimento/{empreendimento_hash}/{file}
+
+# Optional project profile reference:
+# IMO360:
+# URL_IMO360=https://app.imo360crm.pt
+# CF_IMAGES_BASE_URL=https://images.crm360.pt
+#
+# ARYS:
+# URL_IMO360=https://arys.imo360.pt
+# CF_IMAGES_BASE_URL=https://lysgroup.crm360.pt
+# HASHIDS_SALT=<ARYS_HASHIDS_SALT>
+# HASHIDS_MIN_LENGTH=15
+# HASHIDS_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
+# HASHIDS_ALTERNATIVE_SALT=<ARYS_HASHIDS_ALT_SALT>
+# HASHIDS_ALTERNATIVE_MIN_LENGTH=40
+# HASHIDS_ALTERNATIVE_ALPHABET=abcdefghijklmnopqrstuvwxyz1234567890
+# Nota: o profile custom_8 existe no Laravel, mas este worker usa apenas main e alternative.
+# DB via Hyperdrive: configurar no wrangler.jsonc (env arys > hyperdrive.id)
+
 # Legacy folder prefix (optional)
 # Example fixed prefix: WEBSITE_DEFAULT_PATH=agencias/imagens
 # Example by agency: WEBSITE_DEFAULT_PATH=agencias/{agency_id}/imagens

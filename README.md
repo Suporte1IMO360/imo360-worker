@@ -44,6 +44,11 @@ USE_CLOUDFLARE_IMAGES=false
 CF_IMAGES_BASE_URL=https://imagedelivery.net/SEU_ACCOUNT_HASH
 CF_IMAGES_VARIANT=public
 
+# Opcional: templates de path para imagens por projeto
+# Placeholders suportados: {hash}, {user_hash}, {agency_hash}, {agency_id}, {empreendimento_hash}, {file}
+USER_IMAGE_PATH_TEMPLATE=users/{user_hash}/imagens/{file}
+EMPREENDIMENTO_IMAGE_PATH_TEMPLATE=users/{agency_hash}/empreendimento/{empreendimento_hash}/{file}
+
 # Opcional: prefixo legado para ficheiros (equivalente ao defaultpathwebsite)
 # Exemplo fixo: agencias/imagens
 # Exemplo por agencia: agencias/{agency_id}/imagens
@@ -58,6 +63,18 @@ npm run dev
 ```
 
 Por omissão o Wrangler serve localmente e injeta as vars de `.dev.vars`.
+
+Para separar facilmente os dois projetos em local:
+
+```bash
+# IMO360 (usa .dev.vars.imo360 quando corres com --env imo360)
+npx wrangler dev --env imo360
+
+# ARYS (usa .dev.vars.arys quando corres com --env arys)
+npx wrangler dev --env arys
+```
+
+Sugestao: manter `.dev.vars.imo360` e `.dev.vars.arys` com configuracoes independentes (Hashids, base URL de imagens, etc.).
 
 ## 4. Criar Hyperdrive
 
@@ -103,6 +120,11 @@ Se o valor guardado na base nao parecer um `image_id`, o worker faz fallback par
 Se precisares de manter o comportamento do Laravel `defaultpathwebsite`, define `WEBSITE_DEFAULT_PATH`.
 Podes usar `{hash}` (hash da rota), `{agency_hash}`, `{user_hash}` ou `{agency_id}` no template.
 
+Para estruturar ficheiros de utilizadores e empreendimentos por projeto sem alterar código:
+- `USER_IMAGE_PATH_TEMPLATE` controla as fotos de utilizador.
+- `EMPREENDIMENTO_IMAGE_PATH_TEMPLATE` controla as imagens de empreendimentos.
+- Em ambos, usa `{file}` para o nome da imagem e ajusta os restantes placeholders conforme o projeto.
+
 `API_AUTH_TOKEN` é opcional neste starter e só será usado em rotas protegidas.
 
 ## 6. Deploy
@@ -110,6 +132,71 @@ Podes usar `{hash}` (hash da rota), `{agency_hash}`, `{user_hash}` ou `{agency_i
 ```bash
 npm run deploy
 ```
+
+Para ambientes multi-projeto:
+
+```bash
+# IMO360
+npx wrangler deploy --env imo360
+
+# ARYS
+npx wrangler deploy --env arys
+```
+
+Antes do primeiro deploy da ARYS, atualiza o `hyperdrive.id` do ambiente `arys` no `wrangler.jsonc`.
+
+### 6.1 Secrets por ambiente
+
+```bash
+# IMO360
+npx wrangler secret put HASHIDS_SALT --env imo360
+npx wrangler secret put HASHIDS_ALTERNATIVE_SALT --env imo360
+npx wrangler secret put API_AUTH_TOKEN --env imo360
+
+# ARYS
+npx wrangler secret put HASHIDS_SALT --env arys
+npx wrangler secret put HASHIDS_ALTERNATIVE_SALT --env arys
+npx wrangler secret put API_AUTH_TOKEN --env arys
+```
+
+### 6.2 Configurar ARYS (BD + Hashids)
+
+1. Criar Hyperdrive da ARYS:
+
+```bash
+npx wrangler hyperdrive create arys-mysql \
+  --connection-string="mysql://USER:PASSWORD@HOST:3306/DB_ARYS"
+```
+
+2. Copiar o `id` devolvido e atualizar em `wrangler.jsonc` no ambiente `arys`:
+
+```jsonc
+"env": {
+  "arys": {
+    "hyperdrive": [
+      {
+        "binding": "HYPERDRIVE",
+        "id": "ID_REAL_DA_ARYS"
+      }
+    ]
+  }
+}
+```
+
+3. Definir Hashids reais da ARYS:
+
+```bash
+npx wrangler secret put HASHIDS_SALT --env arys
+npx wrangler secret put HASHIDS_ALTERNATIVE_SALT --env arys
+```
+
+4. Validar arranque remoto do ambiente ARYS:
+
+```bash
+npx wrangler dev --env arys --remote
+```
+
+Se aparecer erro do tipo `Hyperdrive binding ... was not found`, o `hyperdrive.id` da ARYS ainda não está correto.
 
 ## 7. Git / Repo
 

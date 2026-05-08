@@ -146,6 +146,17 @@ function normalizePath(path: string): string {
   return path.replace(/^\/+|\/+$/g, '')
 }
 
+function applyPathTemplate(template: string, values: Record<string, string>): string {
+  let resolved = template
+
+  for (const [key, value] of Object.entries(values)) {
+    const regex = new RegExp(`\\{${key}\\}`, 'gi')
+    resolved = resolved.replace(regex, value)
+  }
+
+  return resolved
+}
+
 function buildEmpreendimentoImagePath(
   env: Bindings,
   row: { id: number; agencia_id: number; image: string | null }
@@ -158,10 +169,19 @@ function buildEmpreendimentoImagePath(
 
   const agencyHash = encodeId(env, row.agencia_id)
   const empreendimentoHash = encodeId(env, row.id)
+  const template =
+    env.EMPREENDIMENTO_IMAGE_PATH_TEMPLATE || 'users/{agency_hash}/empreendimento/{empreendimento_hash}/{file}'
 
-  return ['users', agencyHash, 'empreendimento', empreendimentoHash, normalizePath(imageFile)]
-    .filter((part) => part.length > 0)
-    .join('/')
+  return normalizePath(
+    applyPathTemplate(template, {
+      hash: empreendimentoHash,
+      empreendimento_hash: empreendimentoHash,
+      agency_hash: agencyHash,
+      user_hash: agencyHash,
+      agency_id: String(row.agencia_id),
+      file: normalizePath(imageFile)
+    })
+  )
 }
 
 function resolveImageUrl(
